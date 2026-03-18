@@ -2,45 +2,54 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutGrid, BarChart3 } from "lucide-react";
+import { KanbanSquare, BarChart3 } from "lucide-react";
 
-export default function BottomNav() {
+interface NavItem {
+  href: string;
+  label: string;
+  iconType: "kanban" | "stats";
+}
+
+interface BottomNavProps {
+  items: NavItem[];
+}
+
+const getIcon = (iconType: string) => {
+  switch (iconType) {
+    case "kanban":
+      return <KanbanSquare size={24} />;
+    case "stats":
+      return <BarChart3 size={24} />;
+    default:
+      return null;
+  }
+};
+
+export function BottomNav({ items }: BottomNavProps) {
   const pathname = usePathname();
 
-  const navItems = [
-    {
-      href: "/kanban",
-      label: "Kanban",
-      icon: LayoutGrid,
-    },
-    {
-      href: "/stats",
-      label: "Statistics",
-      icon: BarChart3,
-    },
-  ];
-
   return (
-    <div className="flex justify-around h-20 items-center px-4">
-      {navItems.map((item) => {
-        const isActive = pathname === item.href;
-        const Icon = item.icon;
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-bg border-t-neubru border-t-neubru shadow-neubru">
+      <div className="flex justify-around items-center h-20">
+        {items.map((item) => {
+          const isActive = pathname === item.href;
 
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`flex flex-col items-center justify-center gap-1 px-3 py-2 rounded font-bold transition-all ${
-              isActive
-                ? "bg-dark dark:bg-bg text-main dark:text-secondary shadow-neubru border-neubru border-neubru"
-                : "text-dark dark:text-bg hover:bg-secondary"
-            }`}
-          >
-            <Icon size={24} />
-            <span className="text-xs">{item.label}</span>
-          </Link>
-        );
-      })}
-    </div>
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex flex-col items-center justify-center w-full h-full gap-1 py-2 font-semibold transition-all ${
+                isActive
+                  ? "bg-main text-dark shadow-neubru"
+                  : "bg-white text-dark hover:bg-main"
+              }`}
+            >
+              {getIcon(item.iconType)}
+              <span className="text-xs">{item.label}</span>
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
   );
 }

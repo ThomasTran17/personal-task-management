@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Inter } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { cn } from "@/lib/utils";
-
-const inter = Inter({subsets:['latin'],variable:'--font-sans'});
+import { Sidebar } from "@/components/shared/Sidebar";
+import { BottomNav } from "@/components/shared/BottomNav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,8 +16,21 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Personal Task Management",
-  description: "Task management application with Neubrutalism design",
+  description: "A neubrutalism-style task management application",
 };
+
+const navItems = [
+  {
+    href: "/",
+    label: "List",
+    iconType: "kanban" as const,
+  },
+  {
+    href: "/stats",
+    label: "Stats",
+    iconType: "stats" as const,
+  },
+];
 
 export default function RootLayout({
   children,
@@ -26,11 +38,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={cn("font-sans", inter.variable)}>
+    <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-bg dark:bg-dark`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <div className="flex h-screen bg-white">
+          <Sidebar items={navItems} />
+          <main className="flex-1 overflow-auto pb-24 lg:pb-0">
+            <div className="p-6">{children}</div>
+          </main>
+          <BottomNav items={navItems} />
+        </div>
       </body>
     </html>
   );
