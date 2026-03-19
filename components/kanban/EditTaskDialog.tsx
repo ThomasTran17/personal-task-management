@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -18,19 +18,13 @@ import {
 } from '@/components/ui/select';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { useTaskStore } from '@/store/taskStore';
-import { TaskStatus, TaskPriority } from '@/types/task';
+import { Task, TaskStatus, TaskPriority } from '@/types/task';
 
-interface AddTaskDialogProps {
+interface EditTaskDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  task: Task | null;
 }
-
-const INITIAL_FORM_STATE = {
-  title: '',
-  description: '',
-  status: 'todo' as TaskStatus,
-  priority: 'medium' as TaskPriority,
-};
 
 const STATUS_OPTIONS = [
   { value: 'todo', label: 'To Do' },
@@ -44,23 +38,34 @@ const PRIORITY_OPTIONS = [
   { value: 'high', label: 'High' },
 ] as const;
 
-export default function AddTaskDialog({
+export default function EditTaskDialog({
   isOpen,
   onOpenChange,
-}: AddTaskDialogProps) {
-  const [title, setTitle] = useState(INITIAL_FORM_STATE.title);
-  const [description, setDescription] = useState(INITIAL_FORM_STATE.description);
-  const [status, setStatus] = useState(INITIAL_FORM_STATE.status);
-  const [priority, setPriority] = useState(INITIAL_FORM_STATE.priority);
+  task,
+}: EditTaskDialogProps) {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [status, setStatus] = useState<TaskStatus>('todo');
+  const [priority, setPriority] = useState<TaskPriority>('medium');
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const { addTask } = useTaskStore();
+  const { updateTask } = useTaskStore();
   const { errors, validateForm, clearErrors, validateField } = useFormValidation();
 
+  // Initialize form with task data
+  useEffect(() => {
+    if (task) {
+      setTitle(task.title);
+      setDescription(task.description || '');
+      setStatus(task.status);
+      setPriority(task.priority);
+    }
+  }, [task, isOpen]);
+
   const resetForm = useCallback(() => {
-    setTitle(INITIAL_FORM_STATE.title);
-    setDescription(INITIAL_FORM_STATE.description);
-    setStatus(INITIAL_FORM_STATE.status);
-    setPriority(INITIAL_FORM_STATE.priority);
+    setTitle('');
+    setDescription('');
+    setStatus('todo');
+    setPriority('medium');
     setTouched({});
     clearErrors();
   }, [clearErrors]);
@@ -77,11 +82,12 @@ export default function AddTaskDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+    if (!task) return;
+
     const isValid = validateForm({ title, description });
     if (!isValid) return;
 
-    addTask({
+    updateTask(task.id, {
       title: title.trim(),
       description: description.trim() || undefined,
       status,
@@ -111,7 +117,7 @@ export default function AddTaskDialog({
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add New Task</DialogTitle>
+          <DialogTitle>Edit Task</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -195,7 +201,7 @@ export default function AddTaskDialog({
               Cancel
             </Button>
             <Button type="submit" variant="default">
-              Add Task
+              Save Changes
             </Button>
           </DialogFooter>
         </form>

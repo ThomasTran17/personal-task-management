@@ -10,6 +10,7 @@ interface KanbanColumnProps {
   bgColor: string;
   tasks: Task[];
   onDeleteTask: (id: string) => void;
+  isFiltered?: boolean;
 }
 
 export default function KanbanColumn({
@@ -18,6 +19,7 @@ export default function KanbanColumn({
   bgColor,
   tasks,
   onDeleteTask,
+  isFiltered = false,
 }: KanbanColumnProps) {
   return (
     <div className="flex flex-col h-full">
@@ -32,7 +34,11 @@ export default function KanbanColumn({
       </div>
 
       {/* Tasks Container */}
-      <div className="flex-1 bg-secondary-background border-2 border-t-0 border-border rounded-b-lg p-4 space-y-3 overflow-y-auto">
+      <div
+        className={`flex-1 bg-secondary-background border-2 border-t-0 border-border rounded-b-lg p-4 overflow-y-auto ${
+          isFiltered ? 'grid grid-cols-3 gap-3 auto-rows-max' : 'space-y-3'
+        }`}
+      >
         {tasks.map((task) => (
           <TaskCard
             key={task.id}

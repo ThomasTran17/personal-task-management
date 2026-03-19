@@ -42,7 +42,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <div className="flex h-screen bg-white">
+        <div className="flex h-screen">
           <Sidebar items={navItems} />
           <main className="flex-1 overflow-auto pb-24 lg:pb-0">
             <div className="p-6">{children}</div>

@@ -12,8 +12,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import EditTaskDialog from './EditTaskDialog';
 import { Task } from '@/types/task';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Edit2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TaskCardProps {
@@ -28,6 +29,7 @@ const priorityColors = {
 };
 
 export default function TaskCard({ task, onDelete }: TaskCardProps) {
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const handleDeleteConfirm = () => {
@@ -62,17 +64,34 @@ export default function TaskCard({ task, onDelete }: TaskCardProps) {
             {task.priority.toUpperCase()}
           </span>
 
-          {/* Delete Button */}
-          <Button
-            onClick={() => setIsDeleteDialogOpen(true)}
-            variant="neutral"
-            size="icon"
-            className="size-8 p-0 hover:bg-red-100"
-          >
-            <Trash2 className="size-3" />
-          </Button>
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setIsEditDialogOpen(true)}
+              variant="neutral"
+              size="icon"
+              className="size-8 p-0 hover:bg-blue-100"
+            >
+              <Edit2 className="size-3" />
+            </Button>
+            <Button
+              onClick={() => setIsDeleteDialogOpen(true)}
+              variant="neutral"
+              size="icon"
+              className="size-8 p-0 hover:bg-red-100"
+            >
+              <Trash2 className="size-3" />
+            </Button>
+          </div>
         </div>
       </Card>
+
+      {/* Edit Task Dialog */}
+      <EditTaskDialog
+        isOpen={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        task={task}
+      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

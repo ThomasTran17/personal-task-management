@@ -30,7 +30,7 @@ export function BottomNav({ items }: BottomNavProps) {
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-bg border-t-neubru border-t-neubru shadow-neubru">
-      <div className="flex justify-around items-center h-20">
+      <div className="flex justify-around items-center h-14">
         {items.map((item) => {
           const isActive = pathname === item.href;
 
