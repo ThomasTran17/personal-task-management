@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,8 +14,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import EditTaskDialog from './EditTaskDialog';
 import { Task } from '@/types/task';
-import { Trash2, Edit2, Calendar, AlertCircle } from 'lucide-react';
+import { Trash2, Edit2, Calendar, AlertCircle, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  getDeadlineStatus,
+  getDeadlineStatusClass,
+  formatDate,
+} from '@/lib/deadlineHelpers';
 
 interface TaskCardProps {
   task: Task;
@@ -32,21 +37,24 @@ export default function TaskCard({ task, onDelete }: TaskCardProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  const handleDeleteConfirm = () => {
+  // Memoized deadline status
+  const deadlineStatus = useMemo(
+    () => getDeadlineStatus(task.dueDate, task.status),
+    [task.dueDate, task.status]
+  );
+
+  const { isOverdue, isDueSoon, isUrgent } = deadlineStatus;
+
+  // Memoized deadline status class
+  const deadlineStatusClass = useMemo(
+    () => getDeadlineStatusClass(isOverdue, isUrgent, isDueSoon),
+    [isOverdue, isUrgent, isDueSoon]
+  );
+
+  const handleDeleteConfirm = useCallback(() => {
     onDelete(task.id);
     setIsDeleteDialogOpen(false);
-  };
-
-  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'done';
-  const isDueSoon = task.dueDate && !isOverdue && (new Date(task.dueDate).getTime() - new Date().getTime()) < 24 * 60 * 60 * 1000;
-  
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    }).format(new Date(date));
-  };
+  }, [task.id, onDelete]);
 
   return (
     <>
@@ -65,24 +73,31 @@ export default function TaskCard({ task, onDelete }: TaskCardProps) {
 
         {/* Due Date */}
         {task.dueDate && (
-          <div
-            className={cn(
-              'flex items-center gap-2 mb-3 px-2 py-1 rounded text-xs font-medium',
-              isOverdue
-                ? 'bg-red-100 text-red-800 border border-red-300'
-                : isDueSoon
-                  ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                  : 'bg-green-100 text-green-800 border border-green-300'
+          <div className="space-y-2 mb-3">
+            {/* Main Due Date Display */}
+            <div
+              className={cn(
+                'flex items-center gap-2 px-3 py-2 rounded-base text-xs font-medium border-2 transition-all',
+                deadlineStatusClass
+              )}
+            >
+              {isOverdue ? (
+                <AlertCircle className="size-4 flex-shrink-0" />
+              ) : (
+                <Calendar className="size-4 flex-shrink-0" />
+              )}
+              <span className="flex-1">
+                {isOverdue ? 'Overdue' : isDueSoon ? 'Due Today/Tomorrow' : 'Due'}: {formatDate(task.dueDate)}
+              </span>
+            </div>
+
+            {/* Urgent Warning - Within 1 Hour */}
+            {isUrgent && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-base text-xs font-semibold border-2 bg-red-100 border-red-400 text-red-800 animate-pulse">
+                <Clock className="size-4 flex-shrink-0" />
+                <span>⚠️ Deadline in less than 1 hour!</span>
+              </div>
             )}
-          >
-            {isOverdue ? (
-              <AlertCircle className="size-3.5" />
-            ) : (
-              <Calendar className="size-3.5" />
-            )}
-            <span>
-              {isOverdue ? 'Overdue' : isDueSoon ? 'Due Today/Tomorrow' : 'Due'}: {formatDate(task.dueDate)}
-            </span>
           </div>
         )}
 

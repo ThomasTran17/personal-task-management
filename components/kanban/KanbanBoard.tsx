@@ -7,6 +7,7 @@ import { Task, TaskStatus, TaskPriority } from '@/types/task';
 import KanbanColumn from '@/components/kanban/KanbanColumn';
 import AddTaskDialog from '@/components/kanban/AddTaskDialog';
 import SearchAndFilter from '@/components/kanban/SearchAndFilter';
+import { sortTasksByDeadline } from '@/lib/deadlineHelpers';
 
 const COLUMNS = [
   { status: 'todo' as TaskStatus, label: 'TO DO', bgColor: 'bg-red-100' },
@@ -41,7 +42,12 @@ export default function KanbanBoard() {
 
   const getTasksByStatus = useCallback(
     (status: TaskStatus) => {
-      return filteredTasks.filter((task) => task.status === status);
+      const tasksByStatus = filteredTasks.filter((task) => task.status === status);
+      // Sort by deadline for todo and in-progress, keep as-is for done
+      if (status === 'todo' || status === 'in-progress') {
+        return sortTasksByDeadline(tasksByStatus);
+      }
+      return tasksByStatus;
     },
     [filteredTasks]
   );
