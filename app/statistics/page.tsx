@@ -42,7 +42,7 @@ export default function StatisticsPage() {
   }, [tasks]);
 
   return (
-    <main className="min-h-screen bg-white p-6 md:p-12">
+    <main className="min-h-screen p-6 md:p-12">
       <div className="max-w-6xl mx-auto space-y-12">
         {/* Header */}
         <div className="border-2 border-black bg-white p-8">
