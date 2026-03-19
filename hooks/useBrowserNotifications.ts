@@ -34,12 +34,10 @@ export const useBrowserNotifications = () => {
     const setupNotifications = async () => {
       // Check if Notification API is supported
       if (!('Notification' in window)) {
-        console.log('[useBrowserNotifications] Notification API not supported');
         return;
       }
 
       permissionRef.current = Notification.permission;
-      console.log('[useBrowserNotifications] Current permission:', Notification.permission);
 
       // Request permission if not yet decided
       if (Notification.permission === 'default') {
@@ -47,7 +45,7 @@ export const useBrowserNotifications = () => {
           const permission = await Notification.requestPermission();
           permissionRef.current = permission;
         } catch (error) {
-          console.error('[useBrowserNotifications] Error requesting permission:', error);
+          // Error requesting permission
         }
       }
 
@@ -56,9 +54,8 @@ export const useBrowserNotifications = () => {
         try {
           const registration = await navigator.serviceWorker.register('/sw.js');
           globalSwRegistration = registration;
-          console.log('[useBrowserNotifications] Service Worker registered');
         } catch (error) {
-          console.error('[useBrowserNotifications] Service Worker registration failed:', error);
+          // Service Worker registration failed
         }
       }
     };
@@ -66,7 +63,7 @@ export const useBrowserNotifications = () => {
     setupNotifications();
   }, []); // Run only once on mount
 
-  // Send notifications effect
+  // Effect: Subscribe to signal from periodic check
   useEffect(() => {
     // Function to send browser notifications and update badge
     const sendBrowserNotifications = (currentTime?: number) => {
@@ -77,7 +74,6 @@ export const useBrowserNotifications = () => {
 
       // Check current permission (not just the ref which may be stale)
       if (Notification.permission !== 'granted') {
-        console.log('[useBrowserNotifications] Permission not granted:', Notification.permission);
         return;
       }
 
@@ -98,37 +94,32 @@ export const useBrowserNotifications = () => {
 
           if (!globalBrowserNotificationState.oneHourNotified.has(task.id)) {
             try {
-              const dueTime = new Date(task.dueDate).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
+            const dueTime = new Date(task.dueDate).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            });
+
+            // Use Service Worker to show notification if available, otherwise fallback to Notification API
+            if (globalSwRegistration) {
+              globalSwRegistration.showNotification(`⚠️ Urgent Deadline!`, {
+                body: `"${task.title}" deadline in less than 1 hour!\nDue at ${dueTime}`,
+                icon: '/favicon.ico',
+                badge: '/favicon.ico',
+                tag: `urgent-${task.id}`,
+                requireInteraction: true,
               });
-
-              console.log('[useBrowserNotifications] Sending urgent notification for:', task.title);
-              
-              // Use Service Worker to show notification if available, otherwise fallback to Notification API
-              if (globalSwRegistration) {
-                globalSwRegistration.showNotification(`⚠️ Urgent Deadline!`, {
-                  body: `"${task.title}" deadline in less than 1 hour!\nDue at ${dueTime}`,
-                  icon: '/favicon.ico',
-                  badge: '/favicon.ico',
-                  tag: `urgent-${task.id}`,
-                  requireInteraction: true,
-                });
-              } else {
-                const notification = new Notification(`⚠️ Urgent Deadline!`, {
-                  body: `"${task.title}" deadline in less than 1 hour!\nDue at ${dueTime}`,
-                  icon: '/favicon.ico',
-                  badge: '/favicon.ico',
-                  tag: `urgent-${task.id}`,
-                  requireInteraction: true,
-                });
-                console.log('[useBrowserNotifications] Urgent notification created:', notification);
-              }
-
-              globalBrowserNotificationState.oneHourNotified.add(task.id);
+            } else {
+              const notification = new Notification(`⚠️ Urgent Deadline!`, {
+                body: `"${task.title}" deadline in less than 1 hour!\nDue at ${dueTime}`,
+                icon: '/favicon.ico',
+                badge: '/favicon.ico',
+                tag: `urgent-${task.id}`,
+                requireInteraction: true,
+              });
+            }              globalBrowserNotificationState.oneHourNotified.add(task.id);
               globalBrowserNotificationState.oneDayNotified.delete(task.id); // Clear day notification
             } catch (error) {
-              console.error('[useBrowserNotifications] Error sending urgent notification:', error);
+              // Error sending urgent notification
             }
           }
         } else {
@@ -142,33 +133,28 @@ export const useBrowserNotifications = () => {
 
           if (!globalBrowserNotificationState.oneDayNotified.has(task.id)) {
             try {
-              const hoursUntil = Math.floor(timeUntil / (60 * 60 * 1000));
+            const hoursUntil = Math.floor(timeUntil / (60 * 60 * 1000));
 
-              console.log('[useBrowserNotifications] Sending reminder notification for:', task.title);
-              
-              // Use Service Worker to show notification if available, otherwise fallback to Notification API
-              if (globalSwRegistration) {
-                globalSwRegistration.showNotification(`📅 Deadline Reminder`, {
-                  body: `"${task.title}" deadline is coming up\nDue in ${hoursUntil} hours`,
-                  icon: '/favicon.ico',
-                  badge: '/favicon.ico',
-                  tag: `reminder-${task.id}`,
-                  requireInteraction: false,
-                });
-              } else {
-                const notification = new Notification(`📅 Deadline Reminder`, {
-                  body: `"${task.title}" deadline is coming up\nDue in ${hoursUntil} hours`,
-                  icon: '/favicon.ico',
-                  badge: '/favicon.ico',
-                  tag: `reminder-${task.id}`,
-                  requireInteraction: false,
-                });
-                console.log('[useBrowserNotifications] Reminder notification created:', notification);
-              }
-
-              globalBrowserNotificationState.oneDayNotified.add(task.id);
+            // Use Service Worker to show notification if available, otherwise fallback to Notification API
+            if (globalSwRegistration) {
+              globalSwRegistration.showNotification(`📅 Deadline Reminder`, {
+                body: `"${task.title}" deadline is coming up\nDue in ${hoursUntil} hours`,
+                icon: '/favicon.ico',
+                badge: '/favicon.ico',
+                tag: `reminder-${task.id}`,
+                requireInteraction: false,
+              });
+            } else {
+              const notification = new Notification(`📅 Deadline Reminder`, {
+                body: `"${task.title}" deadline is coming up\nDue in ${hoursUntil} hours`,
+                icon: '/favicon.ico',
+                badge: '/favicon.ico',
+                tag: `reminder-${task.id}`,
+                requireInteraction: false,
+              });
+            }              globalBrowserNotificationState.oneDayNotified.add(task.id);
             } catch (error) {
-              console.error('[useBrowserNotifications] Error sending reminder notification:', error);
+              // Error sending reminder notification
             }
           }
         } else if (timeUntil >= ONE_DAY_MS || timeUntil < ONE_HOUR_MS) {
@@ -183,10 +169,10 @@ export const useBrowserNotifications = () => {
         }
       });
 
-      // Update browser tab badge
-      const badgeCount = urgentCount + upcomingCount;
+    // Update browser tab badge
+    const badgeCount = urgentCount + upcomingCount;
 
-      // Try setAppBadge first (Chrome, Edge, Firefox)
+    // Try setAppBadge first (Chrome, Edge, Firefox)
       if ('setAppBadge' in navigator) {
         if (badgeCount > 0) {
           navigator.setAppBadge(badgeCount);
@@ -208,7 +194,7 @@ export const useBrowserNotifications = () => {
         }
       }
     };
-
+    
     // Subscribe to signal from periodic check
     const unsubscribe = deadlineUpdateSignal.subscribe((payload) => {
       sendBrowserNotifications(payload.currentTime);
