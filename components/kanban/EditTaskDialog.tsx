@@ -19,6 +19,7 @@ import {
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { useTaskStore } from '@/store/taskStore';
 import { Task, TaskStatus, TaskPriority } from '@/types/task';
+import DatePicker from '@/components/ui/date-picker';
 
 interface EditTaskDialogProps {
   isOpen: boolean;
@@ -47,6 +48,7 @@ export default function EditTaskDialog({
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>('todo');
   const [priority, setPriority] = useState<TaskPriority>('medium');
+  const [dueDate, setDueDate] = useState<Date | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const { updateTask } = useTaskStore();
   const { errors, validateForm, clearErrors, validateField } = useFormValidation();
@@ -58,6 +60,7 @@ export default function EditTaskDialog({
       setDescription(task.description || '');
       setStatus(task.status);
       setPriority(task.priority);
+      setDueDate(task.dueDate || null);
     }
   }, [task, isOpen]);
 
@@ -66,6 +69,7 @@ export default function EditTaskDialog({
     setDescription('');
     setStatus('todo');
     setPriority('medium');
+    setDueDate(null);
     setTouched({});
     clearErrors();
   }, [clearErrors]);
@@ -92,6 +96,7 @@ export default function EditTaskDialog({
       description: description.trim() || undefined,
       status,
       priority,
+      dueDate: dueDate || undefined,
     });
 
     resetForm();
@@ -172,6 +177,17 @@ export default function EditTaskDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Due Date Input */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Deadline</label>
+            <DatePicker
+              value={dueDate}
+              onDateChange={setDueDate}
+              placeholder="Select deadline date and time"
+              withTime={true}
+            />
           </div>
 
           {/* Priority Select */}

@@ -1,3 +1,28 @@
+::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+
+::-webkit-scrollbar-track {
+  background: #ffffff;
+  
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #000000;
+  border-left: 2px solid #000;
+  border-right: 2px solid #000;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #000000;
+  cursor: pointer;
+}
+
+::-webkit-scrollbar-corner {
+  background: #000;
+}
+
 @import "shadcn/tailwind.css";
 
 @import "tailwindcss";
@@ -64,13 +89,18 @@
   --font-weight-base: 500;
   --font-weight-heading: 700;
 }
-  
+
 @layer base {
   body {
     @apply text-foreground font-base bg-background;
   }
 
-  h1, h2, h3, h4, h5, h6{
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-heading;
   }
 }

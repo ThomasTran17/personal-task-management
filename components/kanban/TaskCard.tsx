@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import EditTaskDialog from './EditTaskDialog';
 import { Task } from '@/types/task';
-import { Trash2, Edit2 } from 'lucide-react';
+import { Trash2, Edit2, Calendar, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TaskCardProps {
@@ -37,6 +37,17 @@ export default function TaskCard({ task, onDelete }: TaskCardProps) {
     setIsDeleteDialogOpen(false);
   };
 
+  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'done';
+  const isDueSoon = task.dueDate && !isOverdue && (new Date(task.dueDate).getTime() - new Date().getTime()) < 24 * 60 * 60 * 1000;
+  
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(new Date(date));
+  };
+
   return (
     <>
       <Card className="bg-background border-2 border-border shadow-shadow hover:shadow-md transition-shadow p-4">
@@ -50,6 +61,29 @@ export default function TaskCard({ task, onDelete }: TaskCardProps) {
           <p className="text-xs text-foreground/60 mb-3 line-clamp-2">
             {task.description}
           </p>
+        )}
+
+        {/* Due Date */}
+        {task.dueDate && (
+          <div
+            className={cn(
+              'flex items-center gap-2 mb-3 px-2 py-1 rounded text-xs font-medium',
+              isOverdue
+                ? 'bg-red-100 text-red-800 border border-red-300'
+                : isDueSoon
+                  ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                  : 'bg-green-100 text-green-800 border border-green-300'
+            )}
+          >
+            {isOverdue ? (
+              <AlertCircle className="size-3.5" />
+            ) : (
+              <Calendar className="size-3.5" />
+            )}
+            <span>
+              {isOverdue ? 'Overdue' : isDueSoon ? 'Due Today/Tomorrow' : 'Due'}: {formatDate(task.dueDate)}
+            </span>
+          </div>
         )}
 
         {/* Task Meta */}

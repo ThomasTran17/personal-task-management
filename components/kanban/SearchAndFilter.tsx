@@ -127,7 +127,7 @@ export default function SearchAndFilter({
       {/* Filters Row */}
       <div
         className={cn(
-          'grid gap-4 transition-all duration-300 overflow-hidden',
+          'grid gap-4 transition-all duration-300 overflow-visible',
           isFiltersOpen ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'hidden lg:grid lg:grid-cols-3'
         )}
       >

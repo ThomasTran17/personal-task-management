@@ -19,6 +19,7 @@ import {
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { useTaskStore } from '@/store/taskStore';
 import { TaskStatus, TaskPriority } from '@/types/task';
+import DatePicker from '@/components/ui/date-picker';
 
 interface AddTaskDialogProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ const INITIAL_FORM_STATE = {
   description: '',
   status: 'todo' as TaskStatus,
   priority: 'medium' as TaskPriority,
+  dueDate: null as Date | null,
 };
 
 const STATUS_OPTIONS = [
@@ -52,6 +54,7 @@ export default function AddTaskDialog({
   const [description, setDescription] = useState(INITIAL_FORM_STATE.description);
   const [status, setStatus] = useState(INITIAL_FORM_STATE.status);
   const [priority, setPriority] = useState(INITIAL_FORM_STATE.priority);
+  const [dueDate, setDueDate] = useState<Date | null>(INITIAL_FORM_STATE.dueDate);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const { addTask } = useTaskStore();
   const { errors, validateForm, clearErrors, validateField } = useFormValidation();
@@ -61,6 +64,7 @@ export default function AddTaskDialog({
     setDescription(INITIAL_FORM_STATE.description);
     setStatus(INITIAL_FORM_STATE.status);
     setPriority(INITIAL_FORM_STATE.priority);
+    setDueDate(INITIAL_FORM_STATE.dueDate);
     setTouched({});
     clearErrors();
   }, [clearErrors]);
@@ -86,6 +90,7 @@ export default function AddTaskDialog({
       description: description.trim() || undefined,
       status,
       priority,
+      dueDate: dueDate || undefined,
     });
 
     resetForm();
@@ -166,6 +171,17 @@ export default function AddTaskDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Due Date Input */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Deadline</label>
+            <DatePicker
+              value={dueDate}
+              onDateChange={setDueDate}
+              placeholder="Select deadline date and time"
+              withTime={true}
+            />
           </div>
 
           {/* Priority Select */}
