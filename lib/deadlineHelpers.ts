@@ -5,10 +5,12 @@ export const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 /**
  * Calculate time remaining until deadline in milliseconds
  * @param dueDate - The deadline date
+ * @param currentTime - Optional current timestamp (for consistency across calculations)
  * @returns Time remaining in milliseconds (negative if overdue)
  */
-export const getTimeUntilDeadline = (dueDate: Date): number => {
-  return new Date(dueDate).getTime() - new Date().getTime();
+export const getTimeUntilDeadline = (dueDate: Date, currentTime?: number): number => {
+  const now = currentTime ?? new Date().getTime();
+  return new Date(dueDate).getTime() - now;
 };
 
 /**
@@ -24,21 +26,23 @@ export interface DeadlineStatus {
  * Get deadline status based on due date and task status
  * @param dueDate - The deadline date
  * @param status - The task status
+ * @param currentTime - Optional current timestamp (for consistency across calculations)
  * @returns Object with boolean flags for deadline states
  */
 export const getDeadlineStatus = (
   dueDate: Date | undefined,
-  status: string
+  status: string,
+  currentTime?: number
 ): DeadlineStatus => {
   if (!dueDate || status === 'done') {
     return { isOverdue: false, isDueSoon: false, isUrgent: false };
   }
 
-  const timeUntil = getTimeUntilDeadline(dueDate);
+  const timeUntil = getTimeUntilDeadline(dueDate, currentTime);
   return {
     isOverdue: timeUntil < 0,
-    isDueSoon: timeUntil >= 0 && timeUntil < ONE_DAY_MS,
-    isUrgent: timeUntil >= 0 && timeUntil < ONE_HOUR_MS,
+    isUrgent: timeUntil > 0 && timeUntil < ONE_HOUR_MS,
+    isDueSoon: timeUntil >= ONE_HOUR_MS && timeUntil < ONE_DAY_MS,
   };
 };
 

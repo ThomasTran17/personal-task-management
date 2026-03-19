@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +21,7 @@ import {
   getDeadlineStatusClass,
   formatDate,
 } from '@/lib/deadlineHelpers';
+import { deadlineUpdateSignal } from '@/lib/deadlineUpdateSignal';
 
 interface TaskCardProps {
   task: Task;
@@ -36,11 +37,40 @@ const priorityColors = {
 export default function TaskCard({ task, onDelete }: TaskCardProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [timeUpdate, setTimeUpdate] = useState(0); // Trigger re-render every 10 seconds or on signal
+  const [signalCurrentTime, setSignalCurrentTime] = useState<number | undefined>(undefined); // Timestamp from signal
 
-  // Memoized deadline status
+  // Subscribe to deadline update signals + periodic timer
+  useEffect(() => {
+    if (!task.dueDate || task.status === 'done') {
+      return;
+    }
+
+    // Subscribe to immediate updates from notifications
+    const unsubscribe = deadlineUpdateSignal.subscribe((payload) => {
+      setSignalCurrentTime(payload.currentTime);
+      setTimeUpdate((prev) => prev + 1);
+    });
+
+    // Also update every 10 seconds as fallback
+    setTimeUpdate((prev) => prev + 1);
+    const interval = setInterval(() => {
+      setTimeUpdate((prev) => prev + 1);
+    }, 10000); // 10 seconds for faster UI updates
+
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
+  }, [task.dueDate, task.status]);
+
+  // Memoized deadline status - re-compute when time updates
   const deadlineStatus = useMemo(
-    () => getDeadlineStatus(task.dueDate, task.status),
-    [task.dueDate, task.status]
+    () => {
+      const status = getDeadlineStatus(task.dueDate, task.status, signalCurrentTime);
+      return status;
+    },
+    [task.dueDate, task.status, timeUpdate, signalCurrentTime]
   );
 
   const { isOverdue, isDueSoon, isUrgent } = deadlineStatus;

@@ -8,6 +8,9 @@ import KanbanColumn from '@/components/kanban/KanbanColumn';
 import AddTaskDialog from '@/components/kanban/AddTaskDialog';
 import SearchAndFilter from '@/components/kanban/SearchAndFilter';
 import { sortTasksByDeadline } from '@/lib/deadlineHelpers';
+import { usePeriodicDeadlineCheck } from '@/hooks/usePeriodicDeadlineCheck';
+import { useBrowserNotifications } from '@/hooks/useBrowserNotifications';
+import { useTitleBadge } from '@/hooks/useTitleBadge';
 
 const COLUMNS = [
   { status: 'todo' as TaskStatus, label: 'TO DO', bgColor: 'bg-red-100' },
@@ -21,6 +24,15 @@ export default function KanbanBoard() {
   const [filterStatus, setFilterStatus] = useState<TaskStatus | 'all'>('all');
   const [filterPriority, setFilterPriority] = useState<TaskPriority | 'all'>('all');
   const { tasks, deleteTask } = useTaskStore();
+
+  // Setup periodic deadline check (toast notifications)
+  usePeriodicDeadlineCheck();
+
+  // Setup browser notifications (web push)
+  useBrowserNotifications();
+
+  // Setup title badge with deadline count
+  useTitleBadge();
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
