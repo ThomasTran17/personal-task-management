@@ -2,7 +2,7 @@
 
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Task, TaskStatus } from '@/types/task';
-import TaskCard from '@/components/kanban/TaskCard';
+import TaskCardDraggable from '@/components/kanban/TaskCardDraggable';
 import EmptyColumnState from '@/components/kanban/EmptyColumnState';
 
 interface KanbanColumnProps {
@@ -12,6 +12,11 @@ interface KanbanColumnProps {
   tasks: Task[];
   onDeleteTask: (id: string) => void;
   isFiltered?: boolean;
+  draggedTaskId?: string | null;
+  onDragStart: (taskId: string, status: TaskStatus) => void;
+  onDragEnd: () => void;
+  onDragOver: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDrop: (status: TaskStatus, e: React.DragEvent<HTMLDivElement>) => void;
 }
 
 export default function KanbanColumn({
@@ -21,6 +26,11 @@ export default function KanbanColumn({
   tasks,
   onDeleteTask,
   isFiltered = false,
+  draggedTaskId,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDrop,
 }: KanbanColumnProps) {
   return (
     <div className="flex flex-col h-full">
@@ -34,20 +44,26 @@ export default function KanbanColumn({
         </div>
       </div>
 
-      {/* Tasks Container */}
+      {/* Tasks Container - Drop Zone */}
       <div
-        className={`flex-1 bg-secondary-background border-2 border-t-0 border-border rounded-b-lg p-4 overflow-y-auto ${
-          isFiltered ? 'grid grid-cols-3 gap-3 auto-rows-max' : 'space-y-3'
-        }`}
+        onDragOver={onDragOver}
+        onDrop={(e) => onDrop(status, e)}
+        className={`flex-1 bg-secondary-background border-2 border-t-0 border-border rounded-b-lg p-4 overflow-y-auto transition-all duration-200 ${
+          draggedTaskId ? 'ring-2 ring-offset-2 ring-main' : ''
+        } ${isFiltered ? 'grid grid-cols-3 gap-3 auto-rows-max' : 'space-y-3'}`}
       >
         {tasks.length === 0 ? (
           <EmptyColumnState status={status} isFiltered={isFiltered} />
         ) : (
           tasks.map((task) => (
-            <TaskCard
+            <TaskCardDraggable
               key={task.id}
               task={task}
+              status={status}
               onDelete={onDeleteTask}
+              isDragging={draggedTaskId === task.id}
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
             />
           ))
         )}

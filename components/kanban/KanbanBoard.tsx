@@ -11,6 +11,7 @@ import { sortTasksByDeadline } from '@/lib/deadlineHelpers';
 import { usePeriodicDeadlineCheck } from '@/hooks/usePeriodicDeadlineCheck';
 import { useBrowserNotifications } from '@/hooks/useBrowserNotifications';
 import { useTitleBadge } from '@/hooks/useTitleBadge';
+import { useDragAndDrop } from '@/hooks/useDragAndDrop';
 
 const COLUMNS = [
   { status: 'todo' as TaskStatus, label: 'TO DO', bgColor: 'bg-red-100' },
@@ -24,6 +25,9 @@ export default function KanbanBoard() {
   const [filterStatus, setFilterStatus] = useState<TaskStatus | 'all'>('all');
   const [filterPriority, setFilterPriority] = useState<TaskPriority | 'all'>('all');
   const { tasks, deleteTask } = useTaskStore();
+
+  // Drag and drop hook
+  const { dragState, handleDragStart, handleDragOver, handleDrop, handleDragEnd } = useDragAndDrop();
 
   // Setup periodic deadline check (toast notifications)
   usePeriodicDeadlineCheck();
@@ -95,6 +99,11 @@ export default function KanbanBoard() {
                 tasks={getTasksByStatus(column.status)}
                 onDeleteTask={deleteTask}
                 isFiltered={filterStatus !== 'all'}
+                draggedTaskId={dragState.draggedTaskId}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
               />
             );
           })}
@@ -122,6 +131,11 @@ export default function KanbanBoard() {
                   bgColor={column.bgColor}
                   tasks={getTasksByStatus(column.status)}
                   onDeleteTask={deleteTask}
+                  draggedTaskId={dragState.draggedTaskId}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
                 />
               </TabsContent>
             ))}
