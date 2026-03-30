@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useTaskStore } from '@/store/taskStore';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { deleteTask as deleteTaskAction } from '@/store/slices/taskSlice';
 import type { TaskStatus, TaskPriority } from '@/types/task';
 import KanbanColumn from '@/components/kanban/KanbanColumn';
 import AddTaskDialog from '@/components/kanban/AddTaskDialog';
@@ -22,7 +23,8 @@ export default function KanbanBoard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<TaskStatus | 'all'>('all');
   const [filterPriority, setFilterPriority] = useState<TaskPriority | 'all'>('all');
-  const { tasks, deleteTask } = useTaskStore();
+  const tasks = useAppSelector((state) => state.tasks.tasks);
+  const dispatch = useAppDispatch();
 
   // Drag and drop hook
   const { dragState, handleDragStart, handleDragOver, handleDrop, handleDragEnd } =
@@ -98,7 +100,7 @@ export default function KanbanBoard() {
                 label={column.label}
                 bgColor={column.bgColor}
                 tasks={getTasksByStatus(column.status)}
-                onDeleteTask={deleteTask}
+                onDeleteTask={(id: string) => dispatch(deleteTaskAction(id))}
                 isFiltered={filterStatus !== 'all'}
                 draggedTaskId={dragState.draggedTaskId}
                 onDragStart={handleDragStart}
@@ -131,7 +133,7 @@ export default function KanbanBoard() {
                   label={column.label}
                   bgColor={column.bgColor}
                   tasks={getTasksByStatus(column.status)}
-                  onDeleteTask={deleteTask}
+                  onDeleteTask={(id: string) => dispatch(deleteTaskAction(id))}
                   draggedTaskId={dragState.draggedTaskId}
                   onDragStart={handleDragStart}
                   onDragEnd={handleDragEnd}

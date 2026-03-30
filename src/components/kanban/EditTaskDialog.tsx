@@ -15,7 +15,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useFormValidation } from '@/hooks/useFormValidation';
-import { useTaskStore } from '@/store/taskStore';
+import { useAppDispatch } from '@/store/hooks';
+import { updateTask } from '@/store/slices/taskSlice';
 import type { Task, TaskStatus, TaskPriority } from '@/types/task';
 import DatePicker from '@/components/ui/date-picker';
 
@@ -44,7 +45,7 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
   const [priority, setPriority] = useState<TaskPriority>('medium');
   const [dueDate, setDueDate] = useState<Date | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const { updateTask } = useTaskStore();
+  const dispatch = useAppDispatch();
   const { errors, validateForm, clearErrors, validateField } = useFormValidation();
 
   // Initialize form with task data
@@ -90,13 +91,18 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
     const isValid = validateForm({ title, description });
     if (!isValid) return;
 
-    updateTask(task.id, {
-      title: title.trim(),
-      description: description.trim() || undefined,
-      status,
-      priority,
-      dueDate: dueDate ?? undefined,
-    });
+    dispatch(
+      updateTask({
+        id: task.id,
+        updates: {
+          title: title.trim(),
+          description: description.trim() || undefined,
+          status,
+          priority,
+          dueDate: dueDate ?? undefined,
+        },
+      })
+    );
 
     resetForm();
     onOpenChange(false);

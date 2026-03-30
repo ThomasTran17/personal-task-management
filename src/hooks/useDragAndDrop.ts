@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useTaskStore } from '@/store/taskStore';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { updateTask } from '@/store/slices/taskSlice';
 import type { TaskStatus } from '@/types/task';
 import { toast } from 'sonner';
 
@@ -18,7 +19,8 @@ export const useDragAndDrop = () => {
     sourceStatus: null,
   });
 
-  const { updateTask, tasks } = useTaskStore();
+  const dispatch = useAppDispatch();
+  const tasks = useAppSelector((state) => state.tasks.tasks);
 
   // Handle drag start
   const handleDragStart = (taskId: string, status: TaskStatus) => {
@@ -49,7 +51,7 @@ export const useDragAndDrop = () => {
 
     // Update task status if dropped on different column
     if (dragState.sourceStatus !== targetStatus) {
-      updateTask(dragState.draggedTaskId, { status: targetStatus });
+      dispatch(updateTask({ id: dragState.draggedTaskId, updates: { status: targetStatus } }));
       toast.success(`Task moved to ${targetStatus}`, {
         description: `"${task.title}" is now in ${targetStatus} column`,
         duration: 3000,

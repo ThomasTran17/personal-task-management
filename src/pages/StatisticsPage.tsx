@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useTaskStore } from '@/store/taskStore';
+import { useAppSelector } from '@/store/hooks';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { TrendingUp, CheckCircle2, AlertTriangle, ListTodo } from 'lucide-react';
@@ -15,7 +15,7 @@ import { EfficiencySection } from '@/components/stats/EfficiencySection';
 import { TrendSection } from '@/components/stats/TrendSection';
 
 export default function StatisticsPage() {
-  const tasks = useTaskStore((state) => state.tasks);
+  const tasks = useAppSelector((state) => state.tasks.tasks);
   const [stats, setStats] = useState<TaskStats>({
     total: 0,
     completed: 0,

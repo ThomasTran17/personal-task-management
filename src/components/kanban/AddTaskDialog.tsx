@@ -15,7 +15,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useFormValidation } from '@/hooks/useFormValidation';
-import { useTaskStore } from '@/store/taskStore';
+import { useAppDispatch } from '@/store/hooks';
+import { addTask } from '@/store/slices/taskSlice';
 import type { TaskStatus, TaskPriority } from '@/types/task';
 import DatePicker from '@/components/ui/date-picker';
 
@@ -51,7 +52,7 @@ export default function AddTaskDialog({ isOpen, onOpenChange }: AddTaskDialogPro
   const [priority, setPriority] = useState(INITIAL_FORM_STATE.priority);
   const [dueDate, setDueDate] = useState<Date | null>(INITIAL_FORM_STATE.dueDate);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const { addTask } = useTaskStore();
+  const dispatch = useAppDispatch();
   const { errors, validateForm, clearErrors, validateField } = useFormValidation();
 
   const resetForm = useCallback(() => {
@@ -80,13 +81,15 @@ export default function AddTaskDialog({ isOpen, onOpenChange }: AddTaskDialogPro
     const isValid = validateForm({ title, description });
     if (!isValid) return;
 
-    addTask({
-      title: title.trim(),
-      description: description.trim() ?? undefined,
-      status,
-      priority,
-      dueDate: dueDate ?? undefined,
-    });
+    dispatch(
+      addTask({
+        title: title.trim(),
+        description: description.trim() ?? undefined,
+        status,
+        priority,
+        dueDate: dueDate ?? undefined,
+      })
+    );
 
     resetForm();
     onOpenChange(false);

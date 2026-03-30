@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { useTaskStore } from '@/store/taskStore';
+import { useAppSelector } from '@/store/hooks';
 import type { Task } from '@/types/task';
 import { getTimeUntilDeadline } from '@/lib/deadlineHelpers';
 import { deadlineUpdateSignal } from '@/lib/deadlineUpdateSignal';
@@ -20,7 +20,7 @@ const CHECK_INTERVAL = 60000; // Check every 1 minute
  */
 export const usePeriodicDeadlineCheck = () => {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const { tasks } = useTaskStore();
+  const tasks = useAppSelector((state) => state.tasks.tasks);
 
   // Process a single task for deadline notifications
   const processTaskDeadline = (task: Task): void => {
