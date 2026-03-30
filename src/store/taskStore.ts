@@ -77,7 +77,10 @@ export const useTaskStore = create<TaskStore>()(
           const item = localStorage.getItem(name);
           if (!item) return null;
           
-          const parsed: { state: { tasks: Record<string, unknown>[]; filter: string }; version: number } = JSON.parse(item);
+          const parsed = JSON.parse(item) as { 
+            state: { tasks: Record<string, unknown>[]; filter: string }
+            version: number 
+          };
           return {
             state: {
               ...parsed.state,

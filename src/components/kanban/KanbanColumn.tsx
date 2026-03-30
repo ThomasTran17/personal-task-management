@@ -1,4 +1,3 @@
-import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Task, TaskStatus } from '@/types/task';
 import TaskCardDraggable from '@/components/kanban/TaskCardDraggable';
 import EmptyColumnState from '@/components/kanban/EmptyColumnState';

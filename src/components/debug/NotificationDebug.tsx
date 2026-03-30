@@ -32,8 +32,8 @@ export const NotificationDebug = () => {
         try {
           const registration = await navigator.serviceWorker.ready;
           serviceWorkerActive = !!registration.active;
-          serviceWorkerUrl = registration.active?.scriptURL || null;
-        } catch (error) {
+          serviceWorkerUrl = registration.active?.scriptURL ?? null;
+        } catch {
           // Service Worker check failed
         }
       }
@@ -46,7 +46,7 @@ export const NotificationDebug = () => {
       });
     };
 
-    checkStatus();
+    void checkStatus();
   }, []);
 
   const requestPermission = async () => {
@@ -58,7 +58,7 @@ export const NotificationDebug = () => {
     try {
       const permission = await Notification.requestPermission();
       setStatus((prev) => ({ ...prev, permission }));
-    } catch (error) {
+    } catch {
       // Error requesting permission
     }
   };
@@ -79,7 +79,7 @@ export const NotificationDebug = () => {
         window.focus();
         notification.close();
       };
-    } catch (error) {
+    } catch {
       // Error creating test notification
     }
   };
@@ -118,7 +118,7 @@ export const NotificationDebug = () => {
 
         <div className="flex gap-2 pt-2">
           <button
-            onClick={requestPermission}
+            onClick={() => void requestPermission()}
             className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
           >
             Request Permission

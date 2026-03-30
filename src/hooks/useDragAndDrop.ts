@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useTaskStore } from '@/store/taskStore';
 import type { TaskStatus } from '@/types/task';
-import { Task } from '@/types/task';
 import { toast } from 'sonner';
 
 interface DragState {

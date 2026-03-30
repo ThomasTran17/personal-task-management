@@ -23,7 +23,7 @@ export const setGlobalSwRegistration = (
 export const sendNotification = (payload: NotificationPayload): void => {
   try {
     if (globalSwRegistration) {
-      globalSwRegistration.showNotification(payload.title, {
+      void globalSwRegistration.showNotification(payload.title, {
         body: payload.body,
         icon: '/favicon.ico',
         badge: '/favicon.ico',
@@ -39,7 +39,7 @@ export const sendNotification = (payload: NotificationPayload): void => {
         requireInteraction: payload.isUrgent,
       });
     }
-  } catch (error) {
+  } catch {
     // Error sending notification - silently fail
   }
 };
@@ -75,9 +75,9 @@ export const updateBrowserBadge = (
   // Try setAppBadge first (Chrome, Edge, Firefox)
   if ('setAppBadge' in navigator) {
     if (badgeCount > 0) {
-      navigator.setAppBadge(badgeCount);
+      void navigator.setAppBadge(badgeCount);
     } else {
-      navigator.clearAppBadge();
+      void navigator.clearAppBadge();
     }
   }
 

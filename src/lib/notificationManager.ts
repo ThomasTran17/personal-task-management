@@ -4,6 +4,7 @@
  */
 
 import type { NotificationState, TaskNotificationStatus, NotificationPayload } from '@/types/notification';
+import type { Task } from '@/types/task';
 import {
   sendNotification,
   formatTimeUntilDeadline,
@@ -91,13 +92,18 @@ export const handleReminderNotification = (
  * @returns Object with isUrgent and isUpcoming status
  */
 export const processTaskNotification = (
-  task: any,
+  task: Task,
   currentTime?: number
 ): TaskNotificationStatus => {
+  if (!task.dueDate || task.status === 'done') {
+    clearNotificationState(task.id);
+    return { isUrgent: false, isUpcoming: false };
+  }
+
   const timeUntilMs = getTimeUntilDeadline(task.dueDate, currentTime);
 
-  // Guard clause: Skip if task is done, no deadline, or deadline passed
-  if (!task.dueDate || task.status === 'done' || timeUntilMs < 0) {
+  // Guard clause: Skip if deadline passed
+  if (timeUntilMs < 0) {
     clearNotificationState(task.id);
     return { isUrgent: false, isUpcoming: false };
   }
@@ -107,7 +113,7 @@ export const processTaskNotification = (
 
   // Handle urgent notification
   if (isUrgent) {
-    handleUrgentNotification(task.id, task.title, task.dueDate);
+    handleUrgentNotification(task.id, task.title, task.dueDate.toISOString());
   } else {
     globalBrowserNotificationState.oneHourNotified.delete(task.id);
   }

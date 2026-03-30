@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useTaskStore } from '@/store/taskStore';
+import type { Task } from '@/types/task';
 import { getTimeUntilDeadline } from '@/lib/deadlineHelpers';
 import { deadlineUpdateSignal } from '@/lib/deadlineUpdateSignal';
 import {
@@ -24,34 +25,35 @@ export const usePeriodicDeadlineCheck = () => {
   const { tasks } = useTaskStore();
 
   // Process a single task for deadline notifications
-  const processTaskDeadline = (task: any): void => {
+  const processTaskDeadline = (task: Task): void => {
     // Guard clause: Skip if task is done or no deadline
     if (!task.dueDate || task.status === 'done') {
       return;
     }
 
     const timeUntilMs = getTimeUntilDeadline(task.dueDate);
+    const dueDateString = task.dueDate.toISOString();
 
-    handleUrgentDeadlineNotification(task.id, task.title, task.dueDate, timeUntilMs);
+    handleUrgentDeadlineNotification(task.id, task.title, dueDateString, timeUntilMs);
     handleReminderDeadlineNotification(task.id, task.title, timeUntilMs);
     clearExpiredNotifications(task.id, timeUntilMs);
     clearUrgentNotificationIfExpired(task.id, timeUntilMs);
     clearReminderNotificationIfExpired(task.id, timeUntilMs);
   };
 
-  // Main check function
-  const checkAllDeadlines = (): void => {
-    tasks.forEach(processTaskDeadline);
-    // Emit signal to update all TaskCard UIs with current deadline status
-    deadlineUpdateSignal.emit();
-  };
-
   useEffect(() => {
+    // Main check function - defined inside effect to capture latest tasks
+    const checkAllDeadlines = (): void => {
+      tasks.forEach(processTaskDeadline);
+      // Emit signal to update all TaskCard UIs with current deadline status
+      deadlineUpdateSignal.emit();
+    };
+
     // Run initial check
-    checkAllDeadlines();
+    void checkAllDeadlines();
 
     // Setup interval
-    intervalRef.current = setInterval(checkAllDeadlines, CHECK_INTERVAL);
+    intervalRef.current = setInterval(() => void checkAllDeadlines(), CHECK_INTERVAL);
 
     // Cleanup
     return () => {
@@ -62,9 +64,10 @@ export const usePeriodicDeadlineCheck = () => {
   }, [tasks]);
 
   // Manual check function (exposed for external use)
-  const manualCheck = (): void => {
-    checkAllDeadlines();
-  };
+  const manualCheck = useCallback((): void => {
+    tasks.forEach(processTaskDeadline);
+    deadlineUpdateSignal.emit();
+  }, [tasks]);
 
   return { manualCheck };
 };

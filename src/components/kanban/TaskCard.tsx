@@ -35,7 +35,6 @@ const priorityColors = {
 export default function TaskCard({ task, onDelete }: TaskCardProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [timeUpdate, setTimeUpdate] = useState(0); // Trigger re-render every 10 seconds or on signal
   const [signalCurrentTime, setSignalCurrentTime] = useState<number | undefined>(undefined); // Timestamp from signal
 
   // Subscribe to deadline update signals + periodic timer
@@ -47,13 +46,11 @@ export default function TaskCard({ task, onDelete }: TaskCardProps) {
     // Subscribe to immediate updates from notifications
     const unsubscribe = deadlineUpdateSignal.subscribe((payload) => {
       setSignalCurrentTime(payload.currentTime);
-      setTimeUpdate((prev) => prev + 1);
     });
 
-    // Also update every 10 seconds as fallback
-    setTimeUpdate((prev) => prev + 1);
+    // Periodically trigger re-render for relative time updates (e.g., "1 hour left")
     const interval = setInterval(() => {
-      setTimeUpdate((prev) => prev + 1);
+      setSignalCurrentTime((prev) => (prev ?? Date.now()));
     }, 10000); // 10 seconds for faster UI updates
 
     return () => {
@@ -68,7 +65,7 @@ export default function TaskCard({ task, onDelete }: TaskCardProps) {
       const status = getDeadlineStatus(task.dueDate, task.status, signalCurrentTime);
       return status;
     },
-    [task.dueDate, task.status, timeUpdate, signalCurrentTime]
+    [task.dueDate, task.status, signalCurrentTime]
   );
 
   const { isOverdue, isDueSoon, isUrgent } = deadlineStatus;

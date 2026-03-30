@@ -1,11 +1,10 @@
 import { useState, useMemo, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { KanbanSquare, BarChart3, ChevronLeft, ChevronRight, Menu, X } from "lucide-react";
+import { KanbanSquare, BarChart3, ChevronLeft, ChevronRight, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";

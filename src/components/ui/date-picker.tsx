@@ -105,7 +105,7 @@ export default function DatePicker({
         <div className="space-y-4">
           <Calendar
             mode="single"
-            selected={value || undefined}
+            selected={value ?? undefined}
             onSelect={handleDateSelect}
             initialFocus
           />

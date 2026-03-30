@@ -85,10 +85,10 @@ export default function AddTaskDialog({
 
     addTask({
       title: title.trim(),
-      description: description.trim() || undefined,
+      description: description.trim() ?? undefined,
       status,
       priority,
-      dueDate: dueDate || undefined,
+      dueDate: dueDate ?? undefined,
     });
 
     resetForm();

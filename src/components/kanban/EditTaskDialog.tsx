@@ -53,12 +53,17 @@ export default function EditTaskDialog({
 
   // Initialize form with task data
   useEffect(() => {
-    if (task) {
-      setTitle(task.title);
-      setDescription(task.description || '');
-      setStatus(task.status);
-      setPriority(task.priority);
-      setDueDate(task.dueDate || null);
+    if (task && isOpen) {
+      const initializeForm = () => {
+        setTitle(task.title);
+        setDescription(task.description ?? '');
+        setStatus(task.status);
+        setPriority(task.priority);
+        setDueDate(task.dueDate ?? null);
+      };
+
+      const timeoutId = setTimeout(initializeForm, 0);
+      return () => clearTimeout(timeoutId);
     }
   }, [task, isOpen]);
 
@@ -94,7 +99,7 @@ export default function EditTaskDialog({
       description: description.trim() || undefined,
       status,
       priority,
-      dueDate: dueDate || undefined,
+      dueDate: dueDate ?? undefined,
     });
 
     resetForm();

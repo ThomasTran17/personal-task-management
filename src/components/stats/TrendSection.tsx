@@ -1,19 +1,13 @@
 import { Card } from '@/components/ui/card';
 import type { TrendAnalysis } from '@/types/statistics';
 import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
-  ComposedChart,
-  Area,
-  AreaChart,
 } from 'recharts';
 import { TrendingDown, BarChart3 } from 'lucide-react';
 
@@ -26,7 +20,7 @@ export interface TrendSectionProps {
  * Uses Recharts for visualization with Neubrutalism styling
  */
 export function TrendSection({ data }: TrendSectionProps) {
-  const hasBurndownData = data.burndownData.length > 0;
+  const _hasBurndownData = data.burndownData.length > 0;
   const hasCompletionData = data.completionTrendData.length > 0;
 
   return (
@@ -114,6 +108,7 @@ export function TrendSection({ data }: TrendSectionProps) {
                     padding: '8px',
                     fontWeight: 'bold',
                   }}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   formatter={(value: any) => [`${value} tasks`, 'Completed']}
                   labelStyle={{ color: '#000', fontWeight: 'bold' }}
                 />

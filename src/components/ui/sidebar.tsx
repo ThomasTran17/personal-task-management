@@ -540,7 +540,7 @@ function SidebarMenuButton({
 function SidebarMenuAction({
   className,
   asChild = false,
-  showOnHover = false,
+  showOnHover: _showOnHover = false,
   ...props
 }: React.ComponentProps<"button"> & {
   asChild?: boolean
@@ -596,10 +596,13 @@ function SidebarMenuSkeleton({
 }: React.ComponentProps<"div"> & {
   showIcon?: boolean
 }) {
-  // Random width between 50 to 90%.
-  const width = React.useMemo(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`
-  }, [])
+  // Generate random width once on mount
+  const [width] = React.useState(() => {
+    const randomPercent = typeof window !== 'undefined'
+      ? Math.floor(Math.random() * 40) + 50
+      : 70;
+    return `${randomPercent}%`;
+  });
 
   return (
     <div
@@ -713,3 +716,4 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+ 
