@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useAppSelector } from '@/store/hooks';
+import { useGetTasksQuery } from '@/store/api/taskApi';
 import { getTimeUntilDeadline, ONE_HOUR_MS, ONE_DAY_MS } from '@/lib/deadlineHelpers';
 
 /**
@@ -7,7 +7,7 @@ import { getTimeUntilDeadline, ONE_HOUR_MS, ONE_DAY_MS } from '@/lib/deadlineHel
  * Shows format: (X) Personal Task Management
  */
 export const useTitleBadge = () => {
-  const tasks = useAppSelector((state) => state.tasks.tasks);
+  const { data: tasks = [] } = useGetTasksQuery();
 
   useEffect(() => {
     // Calculate counts

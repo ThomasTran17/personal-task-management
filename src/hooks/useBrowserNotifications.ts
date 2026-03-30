@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useAppSelector } from '@/store/hooks';
+import { useGetTasksQuery } from '@/store/api/taskApi';
 import { deadlineUpdateSignal } from '@/lib/deadlineUpdateSignal';
 import { setGlobalSwRegistration, updateBrowserBadge } from '@/lib/notificationHelpers';
 import { processTaskNotification } from '@/lib/notificationManager';
@@ -10,7 +10,7 @@ import { processTaskNotification } from '@/lib/notificationManager';
  */
 export const useBrowserNotifications = () => {
   const permissionRef = useRef<NotificationPermission>('default');
-  const tasks = useAppSelector((state) => state.tasks.tasks);
+  const { data: tasks = [] } = useGetTasksQuery();
 
   // Setup notification permission and service worker (one time only)
   useEffect(() => {

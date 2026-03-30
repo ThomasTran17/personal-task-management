@@ -15,8 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useFormValidation } from '@/hooks/useFormValidation';
-import { useAppDispatch } from '@/store/hooks';
-import { addTask } from '@/store/slices/taskSlice';
+import { useAddTaskMutation } from '@/store/api/taskApi';
 import type { TaskStatus, TaskPriority } from '@/types/task';
 import DatePicker from '@/components/ui/date-picker';
 
@@ -52,7 +51,7 @@ export default function AddTaskDialog({ isOpen, onOpenChange }: AddTaskDialogPro
   const [priority, setPriority] = useState(INITIAL_FORM_STATE.priority);
   const [dueDate, setDueDate] = useState<Date | null>(INITIAL_FORM_STATE.dueDate);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const dispatch = useAppDispatch();
+  const [addTask] = useAddTaskMutation();
   const { errors, validateForm, clearErrors, validateField } = useFormValidation();
 
   const resetForm = useCallback(() => {
@@ -81,18 +80,22 @@ export default function AddTaskDialog({ isOpen, onOpenChange }: AddTaskDialogPro
     const isValid = validateForm({ title, description });
     if (!isValid) return;
 
-    dispatch(
-      addTask({
-        title: title.trim(),
-        description: description.trim() ?? undefined,
-        status,
-        priority,
-        dueDate: dueDate ?? undefined,
-      })
-    );
+    void (async () => {
+      try {
+        await addTask({
+          title: title.trim(),
+          description: description.trim() || undefined,
+          priority,
+          status,
+          dueDate: dueDate ? dueDate.toISOString() : undefined,
+        }).unwrap();
 
-    resetForm();
-    onOpenChange(false);
+        resetForm();
+        onOpenChange(false);
+      } catch (error) {
+        console.error('Failed to add task:', error);
+      }
+    })();
   };
 
   const handleCancel = () => {

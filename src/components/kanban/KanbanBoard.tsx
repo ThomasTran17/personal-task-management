@@ -1,7 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { deleteTask as deleteTaskAction } from '@/store/slices/taskSlice';
+import { useGetTasksQuery, useDeleteTaskMutation } from '@/store/api/taskApi';
 import type { TaskStatus, TaskPriority } from '@/types/task';
 import KanbanColumn from '@/components/kanban/KanbanColumn';
 import AddTaskDialog from '@/components/kanban/AddTaskDialog';
@@ -23,8 +22,10 @@ export default function KanbanBoard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<TaskStatus | 'all'>('all');
   const [filterPriority, setFilterPriority] = useState<TaskPriority | 'all'>('all');
-  const tasks = useAppSelector((state) => state.tasks.tasks);
-  const dispatch = useAppDispatch();
+
+  // RTK Query hooks for data fetching
+  const { data: tasks = [] } = useGetTasksQuery();
+  const [deleteTask] = useDeleteTaskMutation();
 
   // Drag and drop hook
   const { dragState, handleDragStart, handleDragOver, handleDrop, handleDragEnd } =
@@ -100,7 +101,9 @@ export default function KanbanBoard() {
                 label={column.label}
                 bgColor={column.bgColor}
                 tasks={getTasksByStatus(column.status)}
-                onDeleteTask={(id: string) => dispatch(deleteTaskAction(id))}
+                onDeleteTask={(id: string) => {
+                  void deleteTask(id);
+                }}
                 isFiltered={filterStatus !== 'all'}
                 draggedTaskId={dragState.draggedTaskId}
                 onDragStart={handleDragStart}
@@ -133,7 +136,9 @@ export default function KanbanBoard() {
                   label={column.label}
                   bgColor={column.bgColor}
                   tasks={getTasksByStatus(column.status)}
-                  onDeleteTask={(id: string) => dispatch(deleteTaskAction(id))}
+                  onDeleteTask={(id: string) => {
+                    void deleteTask(id);
+                  }}
                   draggedTaskId={dragState.draggedTaskId}
                   onDragStart={handleDragStart}
                   onDragEnd={handleDragEnd}
