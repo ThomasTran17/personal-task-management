@@ -3,7 +3,7 @@
  * Defines all task-related API operations with automatic cache invalidation
  */
 
-import { baseApi } from './baseApi';
+import { baseApi } from '../baseApi';
 import type { Task } from '@/types/task';
 
 interface CreateTaskPayload {

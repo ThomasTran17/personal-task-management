@@ -1,38 +1,38 @@
 /**
- * API Module - Central export point
- * Exports all API utilities, services, and types
+ * API Layer Barrel Export
+ * Exports all RTK Query hooks, APIs, and types from a single source
  */
 
-// Core API client
-export { apiClient, createCustomApiClient } from './client';
+// Core API configuration
+export { baseApi } from './baseApi';
 
-// API Endpoints
-export { apiGet, apiPost, apiPut, apiPatch, apiDelete, extractResponseData } from './endpoints';
-
-// Auth API Service
-export { authApi, type User, type LoginRequest, type LoginResponse } from './authApi';
-
-// Token Manager
+// Token management
 export { tokenManager } from './tokenManager';
 
-// Error Handling
-export {
-  configureErrorHandler,
-  handleApiError,
-  formatErrorMessage,
-  getUserFriendlyMessage,
-  logError,
-  isRetryableError,
-  getRetryDelay,
-  retryRequest,
-} from './errorHandler';
+// All types
+export * from './types';
 
-// Types
-export type {
-  ApiResponse,
-  PaginatedResponse,
-  ApiErrorResponse,
-  RequestOptions,
-  TokenData,
-} from './types';
-export { ApiError } from './types';
+// Task API and hooks
+export {
+  taskApi,
+  useGetTasksQuery,
+  useGetTaskByIdQuery,
+  useAddTaskMutation,
+  useUpdateTaskMutation,
+  useDeleteTaskMutation,
+  useDeleteAllTasksMutation,
+  resetApiState,
+} from './services/taskApi';
+
+// Auth API and hooks
+export {
+  authApi,
+  useLoginMutation,
+  useRegisterMutation,
+  useLogoutMutation,
+  useGetProfileQuery,
+  useRefreshTokenMutation,
+  useChangePasswordMutation,
+  useRequestPasswordResetMutation,
+  useResetPasswordMutation,
+} from './services/authApi';

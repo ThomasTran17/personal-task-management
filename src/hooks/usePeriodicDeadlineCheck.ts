@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { useGetTasksQuery } from '@/store/api/taskApi';
+import { useGetTasksQuery } from '@/api/services/taskApi';
 import type { Task } from '@/types/task';
 import { getTimeUntilDeadline } from '@/lib/deadlineHelpers';
 import { deadlineUpdateSignal } from '@/lib/deadlineUpdateSignal';

@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useGetTasksQuery, useDeleteTaskMutation } from '@/store/api/taskApi';
+import { useGetTasksQuery, useDeleteTaskMutation } from '@/api/services/taskApi';
 import type { TaskStatus, TaskPriority } from '@/types/task';
 import KanbanColumn from '@/components/kanban/KanbanColumn';
 import AddTaskDialog from '@/components/kanban/AddTaskDialog';

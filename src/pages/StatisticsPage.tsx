@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useGetTasksQuery } from '@/store/api/taskApi';
+import { useGetTasksQuery } from '@/api/services/taskApi';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { TrendingUp, CheckCircle2, AlertTriangle, ListTodo } from 'lucide-react';

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useUpdateTaskMutation, useGetTasksQuery } from '@/store/api/taskApi';
+import { useUpdateTaskMutation, useGetTasksQuery } from '@/api/services/taskApi';
 import type { TaskStatus } from '@/types/task';
 import { toast } from 'sonner';
 

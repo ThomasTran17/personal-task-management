@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useGetTasksQuery } from '@/store/api/taskApi';
+import { useGetTasksQuery } from '@/api/services/taskApi';
 import { getTimeUntilDeadline, ONE_HOUR_MS, ONE_DAY_MS } from '@/lib/deadlineHelpers';
 
 /**

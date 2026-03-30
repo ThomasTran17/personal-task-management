@@ -99,3 +99,71 @@ export interface TokenData {
   readonly expiresAt: number;
   readonly refreshToken?: string;
 }
+
+/**
+ * User data interface
+ */
+export interface User {
+  readonly id: string;
+  readonly email: string;
+  readonly name: string;
+  readonly role: string;
+  readonly createdAt: string;
+}
+
+/**
+ * Login request payload
+ */
+export interface LoginRequest {
+  readonly email: string;
+  readonly password: string;
+}
+
+/**
+ * Register request payload
+ */
+export interface RegisterRequest {
+  readonly email: string;
+  readonly password: string;
+  readonly name: string;
+}
+
+/**
+ * Login/Register response payload
+ */
+export interface AuthResponse {
+  readonly user: User;
+  readonly token: string;
+  readonly refreshToken?: string;
+  readonly expiresIn: number;
+}
+
+/**
+ * Refresh token request payload
+ */
+export interface RefreshTokenRequest {
+  readonly refreshToken: string;
+}
+
+/**
+ * Change password request payload
+ */
+export interface ChangePasswordRequest {
+  readonly oldPassword: string;
+  readonly newPassword: string;
+}
+
+/**
+ * Password reset request payload
+ */
+export interface ResetPasswordRequest {
+  readonly token: string;
+  readonly newPassword: string;
+}
+
+/**
+ * Password reset email request payload
+ */
+export interface RequestPasswordResetRequest {
+  readonly email: string;
+}

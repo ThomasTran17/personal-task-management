@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useFormValidation } from '@/hooks/useFormValidation';
-import { useUpdateTaskMutation } from '@/store/api/taskApi';
+import { useUpdateTaskMutation } from '@/api/services/taskApi';
 import type { Task, TaskStatus, TaskPriority } from '@/types/task';
 import DatePicker from '@/components/ui/date-picker';
 

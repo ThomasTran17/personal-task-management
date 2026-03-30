@@ -5,7 +5,7 @@
 
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query';
-import { tokenManager } from '@/api/tokenManager';
+import { tokenManager } from './tokenManager';
 
 /**
  * Configure base query with Bearer token injection
@@ -61,6 +61,6 @@ const baseQueryWithReauth: BaseQueryFn<FetchArgs | string, unknown, FetchBaseQue
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithReauth,
-  tagTypes: ['Task'],
+  tagTypes: ['Task', 'User'],
   endpoints: () => ({}),
 });

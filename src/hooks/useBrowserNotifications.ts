@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useGetTasksQuery } from '@/store/api/taskApi';
+import { useGetTasksQuery } from '@/api/services/taskApi';
 import { deadlineUpdateSignal } from '@/lib/deadlineUpdateSignal';
 import { setGlobalSwRegistration, updateBrowserBadge } from '@/lib/notificationHelpers';
 import { processTaskNotification } from '@/lib/notificationManager';
