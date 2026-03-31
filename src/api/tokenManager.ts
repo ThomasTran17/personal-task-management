@@ -1,12 +1,12 @@
 /**
  * Token Management Utilities
  * Handles secure token storage and retrieval
+ * Note: Refresh token is stored in HTTP-only cookie by the server
  */
 
 import type { TokenData } from './types';
 
 const TOKEN_KEY = 'api_token';
-const REFRESH_TOKEN_KEY = 'api_refresh_token';
 const TOKEN_EXPIRY_KEY = 'api_token_expiry';
 
 /**
@@ -40,29 +40,6 @@ export const tokenManager = {
   },
 
   /**
-   * Get refresh token
-   */
-  getRefreshToken(): string | null {
-    try {
-      return localStorage.getItem(REFRESH_TOKEN_KEY);
-    } catch {
-      console.error('Failed to retrieve refresh token from storage');
-      return null;
-    }
-  },
-
-  /**
-   * Save refresh token
-   */
-  setRefreshToken(token: string): void {
-    try {
-      localStorage.setItem(REFRESH_TOKEN_KEY, token);
-    } catch {
-      console.error('Failed to save refresh token to storage');
-    }
-  },
-
-  /**
    * Check if token exists and is not expired
    */
   isTokenValid(): boolean {
@@ -82,11 +59,11 @@ export const tokenManager = {
 
   /**
    * Clear all tokens
+   * Note: Refresh token in HTTP-only cookie will be cleared by the server on logout
    */
   clearTokens(): void {
     try {
       localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(REFRESH_TOKEN_KEY);
       localStorage.removeItem(TOKEN_EXPIRY_KEY);
     } catch {
       console.error('Failed to clear tokens from storage');
@@ -103,7 +80,6 @@ export const tokenManager = {
     return {
       token,
       expiresAt: Number.parseInt(localStorage.getItem(TOKEN_EXPIRY_KEY) ?? '0', 10),
-      refreshToken: this.getRefreshToken() ?? undefined,
     };
   },
 
@@ -112,8 +88,5 @@ export const tokenManager = {
    */
   setTokenData(tokenData: TokenData): void {
     this.setToken(tokenData.token, tokenData.expiresAt);
-    if (tokenData.refreshToken) {
-      this.setRefreshToken(tokenData.refreshToken);
-    }
   },
 };

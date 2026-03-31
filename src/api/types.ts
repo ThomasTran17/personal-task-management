@@ -118,11 +118,11 @@ export interface RequestOptions {
 
 /**
  * Authentication token data
+ * Note: Refresh token is stored in HTTP-only cookie by the server
  */
 export interface TokenData {
   readonly token: string;
   readonly expiresAt: number;
-  readonly refreshToken?: string;
 }
 
 /**
@@ -177,20 +177,20 @@ export interface RegisterRequest {
 /**
  * Login/Register response payload
  * accessToken at top-level as per JSON:API with auth response
+ * Note: Refresh token is handled via HTTP-only cookie
  */
 export interface AuthResponse {
   readonly user: UserWithAttributes;
   readonly accessToken: string;
-  readonly refreshToken?: string;
   readonly expiresIn: number;
 }
 
 /**
  * Refresh token request payload
+ * Note: Refresh token is provided via HTTP-only cookie, body can be empty
+ * Using void type as no request parameters are needed
  */
-export interface RefreshTokenRequest {
-  readonly refreshToken: string;
-}
+export type RefreshTokenRequest = void;
 
 /**
  * Change password request payload

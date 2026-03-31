@@ -2,6 +2,7 @@
  * Authentication API Service using RTK Query
  * Handles user authentication, registration, profile management, and token refresh
  * Implements JSON:API standard with transformResponse for data extraction
+ * Note: Refresh token is stored in HTTP-only cookie by the server
  */
 
 import { baseApi } from '../baseApi';
@@ -12,7 +13,6 @@ import type {
   JsonApiResource,
   JsonApiResponse,
   LoginRequest,
-  RefreshTokenRequest,
   RegisterRequest,
   RequestPasswordResetRequest,
   ResetPasswordRequest,
@@ -166,13 +166,14 @@ export const authApi = baseApi.injectEndpoints({
 
     /**
      * Refresh token endpoint - Obtains new access token
+     * The refresh token is automatically sent via HTTP-only cookie
      * @mutation
      */
-    refreshToken: builder.mutation<AuthResponse, RefreshTokenRequest>({
-      query: (request) => ({
+    refreshToken: builder.mutation<AuthResponse, void>({
+      query: () => ({
         url: '/auth/refresh',
         method: 'POST',
-        body: request,
+        body: {}, // Refresh token comes from HTTP-only cookie
       }),
       transformResponse: (response: JsonApiResponse<UserAttributes>): AuthResponse => {
         // Extract accessToken from top-level
@@ -204,6 +205,7 @@ export const authApi = baseApi.injectEndpoints({
         } catch (error) {
           console.error('Token refresh failed:', error);
           // Clear tokens if refresh fails
+          // HTTP-only cookie will be cleared by server
           tokenManager.clearTokens();
         }
       },

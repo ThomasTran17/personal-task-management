@@ -17,6 +17,7 @@ const timeout = env.VITE_API_TIMEOUT;
 const baseQuery = fetchBaseQuery({
   baseUrl,
   timeout,
+  credentials: 'include', // Include cookies (for HTTP-only refresh token)
   prepareHeaders: (headers) => {
     // Inject Bearer token from token manager
     const token = tokenManager.getToken();
@@ -31,24 +32,78 @@ const baseQuery = fetchBaseQuery({
   },
 });
 
+let isRefreshing = false;
+let failedQueue: (() => Promise<void>)[] = [];
+
+const processQueue = async () => {
+  for (const promise of failedQueue) {
+    await promise();
+  }
+  failedQueue = [];
+};
+
 /**
  * Enhanced base query with error handling
- * Handles 401 Unauthorized by clearing tokens and redirecting
+ * Handles 401 Unauthorized by attempting to refresh token via refresh endpoint
  */
 const baseQueryWithReauth: BaseQueryFn<FetchArgs | string, unknown, FetchBaseQueryError> = async (
   args,
   api,
   extraOptions
 ) => {
-  const result = await baseQuery(args, api, extraOptions);
+  let result = await baseQuery(args, api, extraOptions);
 
-  // Handle 401 Unauthorized
+  // Handle 401 Unauthorized - attempt token refresh
   if (result.error?.status === 401) {
-    // Clear stored tokens
-    tokenManager.clearTokens();
+    if (!isRefreshing) {
+      isRefreshing = true;
 
-    // TODO: Redirect to login page if needed
-    // window.location.href = '/login';
+      try {
+        // Attempt to refresh token using the refresh endpoint
+        // The refresh token is automatically included in cookies
+        const refreshResult = await baseQuery(
+          {
+            url: '/auth/refresh',
+            method: 'POST',
+            body: {}, // Refresh token comes from HTTP-only cookie
+          },
+          api,
+          extraOptions
+        );
+
+        if (refreshResult.data) {
+          // Extract new access token from response
+          const responseData = refreshResult.data as { accessToken?: string };
+          const newAccessToken = responseData.accessToken;
+
+          if (newAccessToken) {
+            tokenManager.setToken(newAccessToken);
+            await processQueue();
+
+            // Retry original request with new token
+            result = await baseQuery(args, api, extraOptions);
+          }
+        } else {
+          // Refresh failed, clear tokens and redirect to login
+          tokenManager.clearTokens();
+          window.location.href = '/login';
+        }
+      } catch (error) {
+        console.error('Token refresh failed:', error);
+        tokenManager.clearTokens();
+        window.location.href = '/login';
+      } finally {
+        isRefreshing = false;
+      }
+    } else {
+      // If already refreshing, queue the failed request to retry later
+      await new Promise<void>((resolve) => {
+        failedQueue.push(async () => {
+          result = await baseQuery(args, api, extraOptions);
+          resolve();
+        });
+      });
+    }
   }
 
   return result;
