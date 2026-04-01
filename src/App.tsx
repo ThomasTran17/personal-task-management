@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Sidebar, BottomNav, Toaster } from '@/components';
-import { LoginPage, ListPage, StatisticsPage } from '@/pages';
+import { LoginPage, ListPage, StatisticsPage, RegisterPage } from '@/pages';
 import { usePeriodicDeadlineCheck } from '@/hooks';
 
 const navItems = [
@@ -24,6 +24,7 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route
           path="/*"
           element={

@@ -208,9 +208,15 @@ export default function LoginPage() {
         {/* Footer */}
         <p className="text-center text-black/60 text-sm mt-8">
           Don't have an account?{' '}
-          <a href="#" className="font-bold text-black hover:underline">
+          <button
+            type="button"
+            onClick={() => {
+              void navigate('/register');
+            }}
+            className="font-bold text-black hover:underline cursor-pointer bg-transparent border-0 p-0"
+          >
             Sign up
-          </a>
+          </button>
         </p>
       </Card>
     </div>
