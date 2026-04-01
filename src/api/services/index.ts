@@ -4,7 +4,6 @@
  */
 
 export {
-  authApi,
   useChangePasswordMutation,
   useGetProfileQuery,
   useLoginMutation,
@@ -17,7 +16,6 @@ export {
 
 export {
   resetApiState,
-  taskApi,
   useAddTaskMutation,
   useDeleteAllTasksMutation,
   useDeleteTaskMutation,

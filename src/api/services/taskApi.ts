@@ -130,7 +130,6 @@ export const taskApi = baseApi.injectEndpoints({
               newTask.dueDate = new Date(arg.dueDate);
             }
 
-            console.log('Optimistically adding task to cache:', newTask);
             // @ts-expect-error - draft is mutable in RTK Query
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call
             draft.push(newTask);

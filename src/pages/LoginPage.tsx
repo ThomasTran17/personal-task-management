@@ -43,13 +43,12 @@ export default function LoginPage() {
 
   const onSubmit = async (values: LoginFormValues) => {
     try {
-      const response = await login({
+      void (await login({
         email: values.email,
         password: values.password,
-      }).unwrap();
+      }).unwrap());
 
       toast.success('Login successful! Redirecting...');
-      console.log('Login response:', response);
 
       // Navegar para dashboard após login bem-sucedido
       void setTimeout(() => {
@@ -65,7 +64,6 @@ export default function LoginPage() {
 
   const handleSocialLogin = (provider: string) => {
     toast.info(`Social login with ${provider} coming soon!`);
-    console.log(`Login with ${provider}`);
   };
 
   return (
@@ -210,9 +208,15 @@ export default function LoginPage() {
         {/* Footer */}
         <p className="text-center text-black/60 text-sm mt-8">
           Don't have an account?{' '}
-          <a href="#" className="font-bold text-black hover:underline">
+          <button
+            type="button"
+            onClick={() => {
+              void navigate('/register');
+            }}
+            className="font-bold text-black hover:underline cursor-pointer bg-transparent border-0 p-0"
+          >
             Sign up
-          </a>
+          </button>
         </p>
       </Card>
     </div>
