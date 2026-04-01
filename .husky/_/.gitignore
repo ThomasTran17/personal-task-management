@@ -1,0 +1,5 @@
+*
+
+!.gitignore
+!check-branch-name.js
+!verify-commit.js

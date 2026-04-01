@@ -1,1 +1,1 @@
-node scripts/check-branch-name.js && npx lint-staged
+node .husky/_/check-branch-name.js && npx lint-staged

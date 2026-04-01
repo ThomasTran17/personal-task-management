@@ -38,7 +38,6 @@ try {
     process.exit(1);
   }
 
-  console.log(`✅ Branch name "${branchName}" is valid`);
 } catch (error) {
   console.error('Error checking branch name:', error.message);
   process.exit(1);
