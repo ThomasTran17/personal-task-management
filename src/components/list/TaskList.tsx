@@ -228,13 +228,12 @@ export default function TaskList() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[5%]"></TableHead>
                   <TableHead className="w-[25%]">Tiêu đề</TableHead>
                   <TableHead className="w-[20%]">Mô tả</TableHead>
                   <TableHead className="w-[15%]">Trạng thái</TableHead>
                   <TableHead className="w-[15%]">Ưu tiên</TableHead>
                   <TableHead className="w-[15%]">Hạn chót</TableHead>
-                  <TableHead className="w-[10%] text-right">Hành động</TableHead>
+                  <TableHead className="w-[15%] text-right">Hành động</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

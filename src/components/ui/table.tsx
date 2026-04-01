@@ -193,6 +193,14 @@ export function ExpandableTaskRow({
   children,
   ...props
 }: ExpandableTaskRowProps) {
+  const childrenArray = React.Children.toArray(children);
+  const firstChild = childrenArray[0];
+  const restChildren = childrenArray.slice(1);
+
+  const firstChildProps = React.isValidElement(firstChild)
+    ? (firstChild.props as React.HTMLAttributes<HTMLTableCellElement>)
+    : null;
+
   return (
     <>
       <tr
@@ -206,22 +214,25 @@ export function ExpandableTaskRow({
         )}
         {...props}
       >
-        {hasSubtasks && (
-          <td className="ps-2 pe-4 py-2 w-6">
-            {/* Toggle UI: Chevron icon rotates to indicate expanded/collapsed state */}
-            <button
-              onClick={() => onToggleSubtasks?.(!isExpanded)}
-              className="inline-flex items-center justify-center w-6 h-6 hover:bg-main/20 rounded-base transition-transform"
-              style={{
-                // -90deg rotation when collapsed, 0deg when expanded
-                transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
-              }}
-            >
-              <ChevronDown className="size-4" />
-            </button>
-          </td>
+        {/* First cell with expand button and content together */}
+        {firstChildProps && (
+          <TableCell className={cn('flex items-center gap-2', firstChildProps?.className)}>
+            {hasSubtasks && (
+              <button
+                onClick={() => onToggleSubtasks?.(!isExpanded)}
+                className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-transform"
+                style={{
+                  // -90deg rotation when collapsed, 0deg when expanded
+                  transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                }}
+              >
+                <ChevronDown className="size-4" />
+              </button>
+            )}
+            {firstChildProps?.children}
+          </TableCell>
         )}
-        {children}
+        {restChildren}
       </tr>
     </>
   );
