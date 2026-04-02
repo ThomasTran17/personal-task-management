@@ -2,6 +2,35 @@
 import * as React from 'react';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib';
+import type { TaskStatus } from '@/types/task';
+
+// Helper function to get accent border color based on task status
+function getStatusBorderColor(status?: TaskStatus): string {
+  switch (status) {
+    case 'TODO':
+      return 'border-s-yellow-500'; // Yellow for TODO
+    case 'IN_PROGRESS':
+      return 'border-s-blue-500'; // Blue for IN_PROGRESS
+    case 'DONE':
+      return 'border-s-green-500'; // Green for DONE
+    default:
+      return 'border-s-border'; // Default border
+  }
+}
+
+// Helper function to get background color for connector lines based on task status
+function getStatusBgColor(status?: TaskStatus): string {
+  switch (status) {
+    case 'TODO':
+      return 'before:bg-yellow-500'; // Yellow for TODO
+    case 'IN_PROGRESS':
+      return 'before:bg-blue-500'; // Blue for IN_PROGRESS
+    case 'DONE':
+      return 'before:bg-green-500'; // Green for DONE
+    default:
+      return 'before:bg-border'; // Default border
+  }
+}
 
 // Main Table Component - Inherits Neubrutalism tokens from index.css
 export function Table({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) {
@@ -11,7 +40,7 @@ export function Table({ className, ...props }: React.HTMLAttributes<HTMLTableEle
         className={cn(
           'w-full caption-bottom text-sm',
           'border-2 border-border rounded-base',
-          'bg-secondary-background',
+          // 'bg-secondary-background',
           className
         )}
         {...props}
@@ -29,7 +58,7 @@ export function TableHeader({
     <thead
       className={cn(
         'bg-main text-main-foreground',
-        'border-b-2 border-border',
+        'border-b-2 border-l-2 border-border',
         'sticky top-0 z-10',
         className
       )}
@@ -68,6 +97,7 @@ export function TableRow({ className, ...props }: React.HTMLAttributes<HTMLTable
     <tr
       className={cn(
         'border-t-2 border-border',
+        'border-s-1',
         'transition-all',
         'data-[state=selected]:bg-main/20',
         className
@@ -98,7 +128,13 @@ export function TableHead({ className, ...props }: React.ThHTMLAttributes<HTMLTa
 export function TableCell({ className, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) {
   return (
     <td
-      className={cn('ps-4 pe-4 py-2', 'align-middle', '[&:has([role=checkbox])]:pe-0', className)}
+      className={cn(
+        'ps-4 pe-4 py-2',
+        'align-middle',
+        'truncate max-w-0',
+        '[&:has([role=checkbox])]:pe-0',
+        className
+      )}
       {...props}
     />
   );
@@ -119,25 +155,30 @@ export function TableCaption({
 interface SubtaskRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
   isLast?: boolean;
   isExpanded?: boolean;
+  status?: TaskStatus;
+  parentStatus?: TaskStatus;
 }
 
 export function SubtaskTableRow({
   className,
   isLast = false,
   isExpanded = false,
+  status,
+  parentStatus,
   ...props
 }: SubtaskRowProps) {
   return (
     <tr
       className={cn(
         'border-b-2 border-border',
-        'bg-white',
+        'border-s-3',
+        getStatusBorderColor(status),
         'transition-all',
         'hover:bg-main/10',
         // Connector Branch: Horizontal line from vertical stem to subtask row
-        'before:absolute before:w-12 before:h-[1px]',
-        'before:bg-border before:-left-12 before:top-1/2',
-        'before:-translate-y-1/2',
+        'before:absolute before:w-11 before:h-[1px]',
+        getStatusBgColor(parentStatus),
+        'before:-left-11 before:top-1/2 before:-translate-y-1/2',
         className
       )}
       {...props}
@@ -151,22 +192,24 @@ export function SubtaskTableRow({
 // parent task to all subtasks in this container
 interface SubtaskContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   isLast?: boolean;
+  parentStatus?: TaskStatus;
 }
 
 export function SubtaskContainer({
   className,
   isLast = false,
+  parentStatus,
   children,
   ...props
 }: SubtaskContainerProps) {
   return (
     <div
       className={cn(
-        'relative ms-10 my-5',
-        ' border border-border',
+        'relative ms-11 py-5',
+        'border-border',
         isLast
-          ? 'before:absolute before:left-0 before:top-0 before:bottom-1/2 before:w-[4px] '
-          : 'before:absolute before:-start-6 before:top-0 before:bottom-0 before:w-[4px] ',
+          ? `before:absolute before:left-0 before:top-0 before:bottom-1/2 before:w-[1px] ${getStatusBgColor(parentStatus)}`
+          : `before:absolute before:-start-11 before:top-0 before:bottom-0 before:w-[1px] ${getStatusBgColor(parentStatus)}`,
         className
       )}
       {...props}
@@ -183,6 +226,7 @@ interface ExpandableTaskRowProps extends React.HTMLAttributes<HTMLTableRowElemen
   hasSubtasks?: boolean;
   isExpanded?: boolean;
   onToggleSubtasks?: (expanded: boolean) => void;
+  status?: TaskStatus;
 }
 
 export function ExpandableTaskRow({
@@ -190,6 +234,7 @@ export function ExpandableTaskRow({
   hasSubtasks = false,
   isExpanded = false,
   onToggleSubtasks,
+  status,
   children,
   ...props
 }: ExpandableTaskRowProps) {
@@ -206,7 +251,8 @@ export function ExpandableTaskRow({
       <tr
         className={cn(
           'border-y-2 border-border',
-          'border-s-[2px] border-s-border',
+          'border-s-3',
+          getStatusBorderColor(status),
           'transition-all',
           'hover:bg-main/10',
           'relative',
@@ -216,20 +262,22 @@ export function ExpandableTaskRow({
       >
         {/* First cell with expand button and content together */}
         {firstChildProps && (
-          <TableCell className={cn('flex items-center gap-2', firstChildProps?.className)}>
-            {hasSubtasks && (
-              <button
-                onClick={() => onToggleSubtasks?.(!isExpanded)}
-                className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-transform"
-                style={{
-                  // -90deg rotation when collapsed, 0deg when expanded
-                  transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
-                }}
-              >
-                <ChevronDown className="size-4" />
-              </button>
-            )}
-            {firstChildProps?.children}
+          <TableCell className={firstChildProps?.className}>
+            <div className="flex items-center gap-2">
+              {hasSubtasks && (
+                <button
+                  onClick={() => onToggleSubtasks?.(!isExpanded)}
+                  className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-transform"
+                  style={{
+                    // -90deg rotation when collapsed, 0deg when expanded
+                    transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                  }}
+                >
+                  <ChevronDown className="size-4" />
+                </button>
+              )}
+              {firstChildProps?.children}
+            </div>
           </TableCell>
         )}
         {restChildren}
@@ -248,11 +296,11 @@ export function SubtaskTableHeader({
   return (
     <thead
       className={cn(
-        'bg-secondary-background',
-        'border-b-2 border-border',
+        'bg-main',
+        'border border-border',
         'text-xs text-foreground/60',
         // z-9 ensures headers stay below sticky main TableHeader (z-10)
-        'sticky top-12 z-9',
+        'sticky top-0 z-9',
         className
       )}
       {...props}

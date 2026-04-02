@@ -224,8 +224,8 @@ export default function TaskList() {
             <p className="text-gray-500 text-lg">Không có công việc nào</p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <Table>
+          <div>
+            <Table className="border-l-0">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[25%]">Tiêu đề</TableHead>
@@ -249,6 +249,7 @@ export default function TaskList() {
                         hasSubtasks={hasSubtasks}
                         isExpanded={isExpanded}
                         onToggleSubtasks={() => toggleExpanded(task.id)}
+                        status={task.status}
                       >
                         <TableCell className="font-semibold text-gray-900">{task.title}</TableCell>
                         <TableCell className="text-gray-600 truncate">
@@ -312,9 +313,12 @@ export default function TaskList() {
 
                       {/* Subtasks Container - L-shaped visual connectors */}
                       {hasSubtasks && isExpanded && (
-                        <TableRow className="border-b-0">
+                        <TableRow className="border-b-0 border-l-0">
                           <TableCell colSpan={7} className="p-0">
-                            <SubtaskContainer isLast={subtasks.length === 1}>
+                            <SubtaskContainer
+                              isLast={subtasks.length === 1}
+                              parentStatus={task.status}
+                            >
                               {/* Subtask Table Headers */}
                               <table className="w-full">
                                 <SubtaskTableHeader>
@@ -330,6 +334,9 @@ export default function TaskList() {
                                     <SubtaskTableRow
                                       key={subtask.id}
                                       isLast={index === subtasks.length - 1}
+                                      status={subtask.status}
+                                      parentStatus={task.status}
+                                      // className={index === 1 ? 'relative' : ''}
                                     >
                                       <TableCell className="text-sm">{subtask.title}</TableCell>
                                       <TableCell>
