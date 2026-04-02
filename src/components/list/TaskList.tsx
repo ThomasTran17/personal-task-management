@@ -17,7 +17,7 @@ import {
   SubtaskTableRow,
   AddTaskRow,
 } from '@/components/ui';
-import { getStatusBorderColor } from '../ui/table';
+import { getStatusBorderLeftColor, getStatusBorderRightColor } from '../ui/table';
 
 // Mock subtask type for testing UI hierarchy
 interface Subtask {
@@ -288,9 +288,12 @@ export default function TaskList() {
                       {/* Subtasks Container - L-shaped visual connectors */}
                       {hasSubtasks && isExpanded && (
                         <TableRow
-                          className={cn('border-b-0 border-l-1', getStatusBorderColor(task.status))}
+                          className={cn(
+                            'border-b-0 border-l-1',
+                            getStatusBorderLeftColor(task.status)
+                          )}
                         >
-                          <TableCell colSpan={6} className="p-0">
+                          <TableCell colSpan={7} className="p-0">
                             {(() => {
                               const midIndex = (subtasks.length - 1) >> 1;
                               const isSingleSubtask = subtasks.length === 1;
@@ -301,9 +304,19 @@ export default function TaskList() {
                                   parentStatus={task.status}
                                 >
                                   {/* Subtask Table Headers */}
-                                  <table className="w-full">
+                                  <table className="w-full border-separate border-spacing-0">
                                     <SubtaskTableHeader parentStatus={task.status}>
                                       <TableRow>
+                                        <TableHead
+                                          className={cn(
+                                            'ps-4 pe-4 py-2',
+                                            'align-middle',
+                                            'truncate max-w-0',
+                                            'border-r-2',
+                                            getStatusBorderRightColor(task.status),
+                                            'w-[5%]'
+                                          )}
+                                        />
                                         <TableHead className="w-[35%]">Tiêu đề</TableHead>
                                         <TableHead className="w-[20%]">Mô tả</TableHead>
                                         <TableHead className="w-[15%]">Trạng thái</TableHead>

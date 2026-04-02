@@ -6,30 +6,43 @@ import type { TaskStatus } from '@/types/task';
 
 // Helper function to get accent border color based on task status
 // eslint-disable-next-line react-refresh/only-export-components
-export function getStatusBorderColor(status?: TaskStatus): string {
+export function getStatusBorderRightColor(status?: TaskStatus): string {
   switch (status) {
     case 'TODO':
-      return 'border-s-yellow-500'; // Yellow for TODO
+      return 'border-r-yellow-500'; // Yellow for TODO
     case 'IN_PROGRESS':
-      return 'border-s-blue-500'; // Blue for IN_PROGRESS
+      return 'border-r-blue-500'; // Blue for IN_PROGRESS
     case 'DONE':
-      return 'border-s-green-500'; // Green for DONE
+      return 'border-r-green-500'; // Green for DONE
     default:
-      return 'border-s-border'; // Default border
+      return 'border-r-border'; // Default border
   }
 }
 
-// Helper function to get background color for connector lines based on task status
-function getStatusBgColor(status?: TaskStatus): string {
+export function getStatusBorderLeftColor(status?: TaskStatus): string {
   switch (status) {
     case 'TODO':
-      return 'before:bg-yellow-500'; // Yellow for TODO
+      return 'border-l-yellow-500'; // Yellow for TODO
     case 'IN_PROGRESS':
-      return 'before:bg-blue-500'; // Blue for IN_PROGRESS
+      return 'border-l-blue-500'; // Blue for IN_PROGRESS
     case 'DONE':
-      return 'before:bg-green-500'; // Green for DONE
+      return 'border-l-green-500'; // Green for DONE
     default:
-      return 'before:bg-border'; // Default border
+      return 'border-l-border'; // Default border
+  }
+}
+
+// Helper function to get border bottom color for connector lines based on task status
+function getStatusBackgroundColor(status?: TaskStatus): string {
+  switch (status) {
+    case 'TODO':
+      return 'bg-yellow-500'; // Yellow for TODO
+    case 'IN_PROGRESS':
+      return 'bg-blue-500'; // Blue for IN_PROGRESS
+    case 'DONE':
+      return 'bg-green-500'; // Green for DONE
+    default:
+      return 'bg-border'; // Default border
   }
 }
 
@@ -41,7 +54,6 @@ export function Table({ className, ...props }: React.HTMLAttributes<HTMLTableEle
         className={cn(
           'w-full caption-bottom text-sm',
           'border-2 border-border rounded-base',
-          // 'bg-secondary-background',
           className
         )}
         {...props}
@@ -58,7 +70,6 @@ export function TableHeader({
   return (
     <thead
       className={cn(
-        'bg-secondary-background',
         'text-main-foreground',
         'border-b-2 border-l-2 border-border',
         'sticky top-0 z-10',
@@ -97,13 +108,7 @@ export function TableFooter({
 export function TableRow({ className, ...props }: React.HTMLAttributes<HTMLTableRowElement>) {
   return (
     <tr
-      className={cn(
-        'border-t-2',
-        'border-l-1',
-        'transition-all',
-        'data-[state=selected]:bg-main/20',
-        className
-      )}
+      className={cn('border-t-2', 'transition-all', 'data-[state=selected]:bg-main/20', className)}
       {...props}
     />
   );
@@ -169,29 +174,40 @@ export function SubtaskTableRow({
   isSingleSubtask = false,
   status,
   parentStatus,
+  children,
   ...props
 }: SubtaskRowProps) {
   const hasConnector = index === targetIndex;
 
   return (
     <tr
-      className={cn(
-        'border-b-2 border-border',
-        'border-s-3',
-        getStatusBorderColor(status),
-        'transition-all',
-        'hover:bg-main/10',
-        // Connector Branch: Horizontal line from vertical stem to subtask row
-        hasConnector && [
-          'relative',
-          'before:content-[""] before:absolute before:w-12 before:h-[1px] before:-left-13',
-          getStatusBgColor(parentStatus),
-          isSingleSubtask ? 'before:top-1/2 before:-translate-y-1/2' : 'before:bottom-[-3px]',
-        ],
-        className
-      )}
+      className={cn('border-b-2 border-border', 'transition-all', 'hover:bg-main/10', className)}
       {...props}
-    />
+    >
+      <td
+        className={cn(
+          'ps-4 pe-4 py-2',
+          'align-middle',
+          'truncate max-w-0',
+          'border-r-2',
+          'w-[5%]',
+          'relative',
+          getStatusBorderRightColor(status)
+        )}
+      >
+        {hasConnector && (
+          <div
+            className={cn(
+              'absolute left-0 bottom-0 h-[1px] w-full',
+              getStatusBackgroundColor(parentStatus),
+              isSingleSubtask && 'top-1/2 -translate-y-1/2'
+            )}
+          ></div>
+        )}
+      </td>
+
+      {children}
+    </tr>
   );
 }
 
@@ -211,7 +227,7 @@ export function SubtaskContainer({
   ...props
 }: SubtaskContainerProps) {
   return (
-    <div className={cn('relative ms-11 py-5', className)} {...props}>
+    <div className={cn('relative py-5 z-10', className)} {...props}>
       {children}
     </div>
   );
@@ -250,7 +266,7 @@ export function ExpandableTaskRow({
         className={cn(
           'border-y-2 border-border',
           'border-s-3',
-          getStatusBorderColor(status),
+          getStatusBorderLeftColor(status),
           'transition-all',
           'hover:bg-main/10',
           'relative',
@@ -291,27 +307,32 @@ interface SubtaskTableHeaderProps extends React.HTMLAttributes<HTMLTableSectionE
   parentStatus?: TaskStatus;
 }
 
-export function SubtaskTableHeader({ className, parentStatus, ...props }: SubtaskTableHeaderProps) {
+export function SubtaskTableHeader({
+  className,
+  parentStatus,
+  children,
+  ...props
+}: SubtaskTableHeaderProps) {
   return (
     <thead
       className={cn(
-        'bg-secondary-background',
         'border border-border',
-        'border-s-3',
-        getStatusBorderColor(parentStatus),
+        'border-l-3 border-r-0',
+        getStatusBorderLeftColor(parentStatus),
         'text-xs text-foreground/60',
         // z-9 ensures headers stay below sticky main TableHeader (z-10)
         'sticky top-0 z-9',
         className
       )}
       {...props}
-    />
+    >
+      {children}
+    </thead>
   );
 }
 
 // Add Task Row - Styled like a subtask row with quick input functionality
 // Footer Action: This row is placed at the bottom of subtask list
-// Styling: Matches SubtaskTableRow for consistent appearance
 // Feature: Inline input for quick task title entry
 interface AddTaskRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
   onAddClick?: () => void;
@@ -368,13 +389,23 @@ export function AddTaskRow({
       className={cn(
         'border-b-2 border-border',
         'border-s-3',
-        getStatusBorderColor(parentStatus),
+        getStatusBorderLeftColor(parentStatus),
         'transition-all',
         'hover:bg-main/10',
         className
       )}
       {...props}
     >
+      <td
+        className={cn(
+          'ps-4 pe-4 py-2',
+          'align-middle',
+          'truncate max-w-0',
+          'border-r-2',
+          'w-[5%]',
+          getStatusBorderRightColor(parentStatus)
+        )}
+      />
       <TableCell colSpan={6} className="ps-0 pe-0">
         {isEditing ? (
           <input
