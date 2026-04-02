@@ -17,7 +17,7 @@ import {
   SubtaskTableRow,
   AddTaskRow,
 } from '@/components/ui';
-import { getStatusBorderLeftColor, getStatusBorderRightColor } from '../ui/table';
+import { getStatusColor as getStatusBorderColors } from '../ui/table';
 
 // Mock subtask type for testing UI hierarchy
 interface Subtask {
@@ -290,7 +290,10 @@ export default function TaskList() {
                         <TableRow className={cn('border-b-0 border-l-1 p-0')}>
                           <TableCell
                             colSpan={6}
-                            className={cn('p-0 border-r-0', getStatusBorderLeftColor(task.status))}
+                            className={cn(
+                              'p-0 border-r-0',
+                              getStatusBorderColors(task.status).borderLeft
+                            )}
                           >
                             {(() => {
                               const midIndex = (subtasks.length - 1) >> 1;
@@ -310,7 +313,7 @@ export default function TaskList() {
                                             'align-middle',
                                             'border-r-3 first:border-l-0 first:border-t-0',
                                             'p-0',
-                                            getStatusBorderRightColor(task.status),
+                                            getStatusBorderColors(task.status).borderRight,
                                             'w-[3%]'
                                           )}
                                         />

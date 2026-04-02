@@ -4,62 +4,52 @@ import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib';
 import type { TaskStatus } from '@/types/task';
 
-// Helper function to get accent border color based on task status
-// eslint-disable-next-line react-refresh/only-export-components
-export function getStatusBorderRightColor(status?: TaskStatus): string {
-  switch (status) {
-    case 'TODO':
-      return 'border-r-yellow-500'; // Yellow for TODO
-    case 'IN_PROGRESS':
-      return 'border-r-blue-500'; // Blue for IN_PROGRESS
-    case 'DONE':
-      return 'border-r-green-500'; // Green for DONE
-    default:
-      return 'border-r-border'; // Default border
-  }
+// Status-to-color mapping (DRY principle)
+const STATUS_COLORS: Record<
+  TaskStatus | 'default',
+  { borderRight: string; borderLeft: string; background: string }
+> = {
+  TODO: {
+    borderRight: 'border-r-yellow-500',
+    borderLeft: 'border-l-yellow-500',
+    background: 'bg-yellow-500',
+  },
+  IN_PROGRESS: {
+    borderRight: 'border-r-blue-500',
+    borderLeft: 'border-l-blue-500',
+    background: 'bg-blue-500',
+  },
+  DONE: {
+    borderRight: 'border-r-green-500',
+    borderLeft: 'border-l-green-500',
+    background: 'bg-green-500',
+  },
+  default: {
+    borderRight: 'border-r-border',
+    borderLeft: 'border-l-border',
+    background: 'bg-border',
+  },
+};
+
+// Helper function to get status colors based on task status
+export function getStatusColor(status: TaskStatus | undefined): typeof STATUS_COLORS.default {
+  return STATUS_COLORS[status as keyof typeof STATUS_COLORS] ?? STATUS_COLORS.default;
 }
 
-export function getStatusBorderLeftColor(status?: TaskStatus): string {
-  switch (status) {
-    case 'TODO':
-      return 'border-l-yellow-500'; // Yellow for TODO
-    case 'IN_PROGRESS':
-      return 'border-l-blue-500'; // Blue for IN_PROGRESS
-    case 'DONE':
-      return 'border-l-green-500'; // Green for DONE
-    default:
-      return 'border-l-border'; // Default border
-  }
-}
-
-// Helper function to get border bottom color for connector lines based on task status
-function getStatusBackgroundColor(status?: TaskStatus): string {
-  switch (status) {
-    case 'TODO':
-      return 'bg-yellow-500'; // Yellow for TODO
-    case 'IN_PROGRESS':
-      return 'bg-blue-500'; // Blue for IN_PROGRESS
-    case 'DONE':
-      return 'bg-green-500'; // Green for DONE
-    default:
-      return 'bg-border'; // Default border
-  }
-}
+// Shared Tailwind class patterns (DRY - reused across multiple components)
+const TABLE_BASE_CLASSES =
+  'w-full caption-bottom text-sm table-fixed border-separate border-spacing-0 border-0';
+const TABLE_HEADER_BORDER_CLASSES = 'border-b-1 border-l-1 border-table-border';
+const TABLE_ROW_BORDER_CLASSES = 'border-t-1 border-table-border';
+const CELL_BASE_CLASSES =
+  'ps-4 pe-4 align-middle truncate max-w-0 border-r-1 border-t-1 first:border-l-1 border-table-border';
+const CELL_CHECKBOX_ADJUSTMENT = '[&:has([role=checkbox])]:pe-0';
 
 // Main Table Component - Inherits Neubrutalism tokens from index.css
 export function Table({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) {
   return (
     <div className="w-full overflow-auto">
-      <table
-        className={cn(
-          'w-full caption-bottom text-sm',
-          'table-fixed',
-          'border-separate border-spacing-0',
-          'border-0',
-          className
-        )}
-        {...props}
-      />
+      <table className={cn(TABLE_BASE_CLASSES, className)} {...props} />
     </div>
   );
 }
@@ -72,9 +62,8 @@ export function TableHeader({
   return (
     <thead
       className={cn(
-        'text-main-foreground',
-        'border-b-1 border-l-1 border-table-border',
-        'sticky top-0 z-10',
+        'text-main-foreground sticky top-0 z-10',
+        TABLE_HEADER_BORDER_CLASSES,
         className
       )}
       {...props}
@@ -84,7 +73,7 @@ export function TableHeader({
 
 // Table Body - base styling
 export function TableBody({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
-  return <tbody className={cn('', className)} {...props} />;
+  return <tbody className={cn(className)} {...props} />;
 }
 
 // Table Footer - Neubrutalism with muted styling
@@ -108,9 +97,7 @@ export function TableFooter({
 
 // Table Row - with hard borders and hover state (Neubrutalism)
 export function TableRow({ className, ...props }: React.HTMLAttributes<HTMLTableRowElement>) {
-  return (
-    <tr className={cn('border-t-1 border-table-border', 'transition-all', className)} {...props} />
-  );
+  return <tr className={cn(TABLE_ROW_BORDER_CLASSES, 'transition-all', className)} {...props} />;
 }
 
 // Table Head - Neubrutalism header styling
@@ -118,13 +105,9 @@ export function TableHead({ className, ...props }: React.ThHTMLAttributes<HTMLTa
   return (
     <th
       className={cn(
-        'h-12 ps-4 pe-4',
-        'text-left align-middle',
-        'font-weight-base font-base',
-        'truncate max-w-0',
-        'text-foreground',
-        '[&:has([role=checkbox])]:pe-0',
-        'border-r-1 border-t-1 first:border-l-1 border-table-border',
+        'h-12 text-left text-foreground font-weight-base font-base',
+        CELL_BASE_CLASSES,
+        CELL_CHECKBOX_ADJUSTMENT,
         className
       )}
       {...props}
@@ -135,17 +118,7 @@ export function TableHead({ className, ...props }: React.ThHTMLAttributes<HTMLTa
 // Table Cell - Neubrutalism padding and borders
 export function TableCell({ className, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <td
-      className={cn(
-        'ps-4 pe-4 py-2',
-        'align-middle',
-        'truncate max-w-0',
-        '[&:has([role=checkbox])]:pe-0',
-        'border-r-1 border-t-1 first:border-l-1 border-table-border',
-        className
-      )}
-      {...props}
-    />
+    <td className={cn('py-2', CELL_BASE_CLASSES, CELL_CHECKBOX_ADJUSTMENT, className)} {...props} />
   );
 }
 
@@ -183,27 +156,23 @@ export function SubtaskTableRow({
 
   return (
     <tr
-      className={cn('border-b-2 border-border', 'transition-all', 'hover:bg-main/10', className)}
+      className={cn('border-b-2 border-border transition-all hover:bg-main/10', className)}
       {...props}
     >
       <td
         className={cn(
-          // 'ps-4 pe-4 py-2',
-          'align-middle',
-          'truncate max-w-0',
-          'border-r-3',
-          'relative',
-          getStatusBorderRightColor(status)
+          'align-middle truncate max-w-0 border-r-3 relative',
+          getStatusColor(status).borderRight
         )}
       >
         {hasConnector && (
           <div
             className={cn(
               'absolute left-0 bottom-0 h-[1px] w-full',
-              getStatusBackgroundColor(parentStatus),
+              getStatusColor(parentStatus).background,
               isSingleSubtask && 'top-1/2 -translate-y-1/2'
             )}
-          ></div>
+          />
         )}
       </td>
 
@@ -265,11 +234,7 @@ export function ExpandableTaskRow({
     <>
       <tr
         className={cn(
-          'border-y-1 border-table-border',
-          'border-s-3',
-          'transition-all',
-          'hover:bg-main/10',
-          'relative',
+          'border-y-1 border-table-border border-s-3 transition-all hover:bg-main/10 relative',
           className
         )}
         {...props}
@@ -278,7 +243,7 @@ export function ExpandableTaskRow({
         {firstChildProps && (
           <TableCell
             className={cn(
-              getStatusBorderLeftColor(status),
+              getStatusColor(status).borderLeft,
               'first:border-l-3',
               firstChildProps?.className
             )}
@@ -289,7 +254,6 @@ export function ExpandableTaskRow({
                   onClick={() => onToggleSubtasks?.(!isExpanded)}
                   className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-transform"
                   style={{
-                    // -90deg rotation when collapsed, 0deg when expanded
                     transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
                   }}
                 >
@@ -324,7 +288,7 @@ export function SubtaskTableHeader({
       className={cn(
         'border border-border',
         'border-l-3 border-r-0',
-        getStatusBorderLeftColor(parentStatus),
+        getStatusColor(parentStatus).borderLeft,
         'text-xs text-foreground/60',
         'sticky top-0 z-9',
         className
@@ -392,11 +356,8 @@ export function AddTaskRow({
   return (
     <tr
       className={cn(
-        'border-b-2 border-border',
-        'border-s-3',
-        getStatusBorderLeftColor(parentStatus),
-        'transition-all',
-        'hover:bg-main/10',
+        'border-b-2 border-border border-s-3 transition-all hover:bg-main/10',
+        getStatusColor(parentStatus).borderLeft,
         className
       )}
       {...props}
@@ -404,11 +365,8 @@ export function AddTaskRow({
       {parentStatus && (
         <td
           className={cn(
-            'ps-4 pe-4 py-2',
-            'align-middle',
-            'truncate max-w-0',
-            'border-r-3',
-            getStatusBorderRightColor(parentStatus)
+            'ps-4 pe-4 py-2 align-middle truncate max-w-0 border-r-3',
+            getStatusColor(parentStatus).borderRight
           )}
         />
       )}
@@ -423,11 +381,7 @@ export function AddTaskRow({
             onKeyDown={handleKeyDown}
             placeholder="Enter task title..."
             className={cn(
-              'w-full ps-4 pe-4 py-1',
-              'bg-transparent',
-              'border-none',
-              'outline-none',
-              'text-foreground',
+              'w-full ps-4 pe-4 py-1 bg-transparent border-none outline-none text-foreground',
               'placeholder:text-foreground/50'
             )}
           />
