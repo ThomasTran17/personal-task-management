@@ -1,20 +1,9 @@
 import { useMemo, useState } from 'react';
 import React from 'react';
-import { useGetTasksQuery, useDeleteTaskMutation } from '@/api';
+import { useGetTasksQuery } from '@/api';
 import type { TaskPriority, TaskStatus } from '@/types';
 import type { Task } from '@/types/task';
-import { sortTasksByDeadline } from '@/lib';
-import { Button } from '@/components/ui/button';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+import { cn, sortTasksByDeadline } from '@/lib';
 import {
   Table,
   TableBody,
@@ -28,6 +17,7 @@ import {
   SubtaskTableRow,
   AddTaskRow,
 } from '@/components/ui';
+import { getStatusBorderColor } from '../ui/table';
 
 // Mock subtask type for testing UI hierarchy
 interface Subtask {
@@ -45,14 +35,12 @@ const MOCK_SUBTASKS_MAP: Record<string, Subtask[]> = {
     { id: 'sub-1-3', title: 'Write unit tests', status: 'TODO', priority: 'MEDIUM' },
   ],
   'task-2': [
-    { id: 'sub-2-1', title: 'Create login form', status: 'IN_PROGRESS', priority: 'HIGH' },
     { id: 'sub-2-2', title: 'Add password validation', status: 'TODO', priority: 'MEDIUM' },
   ],
 };
 
 export default function TaskList() {
   const { data: tasksFromApi = [] } = useGetTasksQuery();
-  const [deleteTask] = useDeleteTaskMutation();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<TaskStatus | 'all'>('all');
   const [filterPriority, setFilterPriority] = useState<TaskPriority | 'all'>('all');
@@ -126,14 +114,6 @@ export default function TaskList() {
     return sortTasksByDeadline(result);
   }, [tasks, searchQuery, filterStatus, filterPriority]);
 
-  const handleDeleteTask = async (taskId: string) => {
-    try {
-      await deleteTask(taskId).unwrap();
-    } catch (error) {
-      console.error('Failed to delete task:', error);
-    }
-  };
-
   const getPriorityColor = (priority: TaskPriority) => {
     switch (priority) {
       case 'HIGH':
@@ -176,6 +156,30 @@ export default function TaskList() {
   // Get subtasks for a task ID from mock map
   const getSubtasks = (taskId: string): Subtask[] => {
     return MOCK_SUBTASKS_MAP[taskId] || [];
+  };
+
+  // Handle adding a new subtask
+  const handleAddSubtask = (parentTaskId: string, title: string) => {
+    const subtasks = getSubtasks(parentTaskId);
+    const newSubtask: Subtask = {
+      id: `sub-${parentTaskId}-${subtasks.length + 1}`,
+      title,
+      status: 'TODO',
+      priority: 'MEDIUM',
+    };
+
+    // Create new map with updated subtasks
+    const newMap = { ...MOCK_SUBTASKS_MAP };
+    if (!newMap[parentTaskId]) {
+      newMap[parentTaskId] = [];
+    }
+    newMap[parentTaskId] = [...newMap[parentTaskId], newSubtask];
+
+    // Update the reference
+    Object.assign(MOCK_SUBTASKS_MAP, newMap);
+
+    // Force re-render by triggering state update
+    setExpandedTasks((prev) => new Set(prev));
   };
 
   return (
@@ -228,12 +232,11 @@ export default function TaskList() {
             <Table className="border-l-0">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[25%]">Tiêu đề</TableHead>
+                  <TableHead className="w-[40%]">Tiêu đề</TableHead>
                   <TableHead className="w-[20%]">Mô tả</TableHead>
                   <TableHead className="w-[15%]">Trạng thái</TableHead>
                   <TableHead className="w-[15%]">Ưu tiên</TableHead>
-                  <TableHead className="w-[15%]">Hạn chót</TableHead>
-                  <TableHead className="w-[15%] text-right">Hành động</TableHead>
+                  <TableHead className="w-[10%]">Hạn chót</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -280,97 +283,82 @@ export default function TaskList() {
                         <TableCell>
                           {task.dueDate ? new Date(task.dueDate).toLocaleDateString('vi-VN') : '-'}
                         </TableCell>
-                        <TableCell className="text-right">
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="default" size="sm">
-                                Xóa
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Bạn có chắc chắn muốn xóa công việc này? Thao tác này không thể
-                                  hoàn tác.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <div className="flex gap-2 justify-end">
-                                <AlertDialogCancel>Hủy</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => {
-                                    void handleDeleteTask(task.id);
-                                  }}
-                                  className="bg-red-600 hover:bg-red-700"
-                                >
-                                  Xóa
-                                </AlertDialogAction>
-                              </div>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </TableCell>
                       </ExpandableTaskRow>
 
                       {/* Subtasks Container - L-shaped visual connectors */}
                       {hasSubtasks && isExpanded && (
-                        <TableRow className="border-b-0 border-l-0">
-                          <TableCell colSpan={7} className="p-0">
-                            <SubtaskContainer
-                              isLast={subtasks.length === 1}
-                              parentStatus={task.status}
-                            >
-                              {/* Subtask Table Headers */}
-                              <table className="w-full">
-                                <SubtaskTableHeader>
-                                  <TableRow>
-                                    <TableHead className="w-[30%] text-xs">Subtask</TableHead>
-                                    <TableHead className="w-[20%] text-xs">Trạng thái</TableHead>
-                                    <TableHead className="w-[20%] text-xs">Ưu tiên</TableHead>
-                                    <TableHead className="w-[30%] text-xs"></TableHead>
-                                  </TableRow>
-                                </SubtaskTableHeader>
-                                <TableBody>
-                                  {subtasks.map((subtask, index) => (
-                                    <SubtaskTableRow
-                                      key={subtask.id}
-                                      isLast={index === subtasks.length - 1}
-                                      status={subtask.status}
-                                      parentStatus={task.status}
-                                      showConnector={index === Math.ceil(subtasks.length / 2) - 1}
-                                    >
-                                      <TableCell className="text-sm">{subtask.title}</TableCell>
-                                      <TableCell>
-                                        <span
-                                          className={`inline-block px-2 py-1 rounded text-xs font-medium ${getStatusColor(subtask.status)}`}
+                        <TableRow
+                          className={cn('border-b-0 border-l-1', getStatusBorderColor(task.status))}
+                        >
+                          <TableCell colSpan={6} className="p-0">
+                            {(() => {
+                              const midIndex = (subtasks.length - 1) >> 1;
+                              const isSingleSubtask = subtasks.length === 1;
+
+                              return (
+                                <SubtaskContainer
+                                  isLast={subtasks.length === 1}
+                                  parentStatus={task.status}
+                                >
+                                  {/* Subtask Table Headers */}
+                                  <table className="w-full">
+                                    <SubtaskTableHeader parentStatus={task.status}>
+                                      <TableRow>
+                                        <TableHead className="w-[35%]">Tiêu đề</TableHead>
+                                        <TableHead className="w-[20%]">Mô tả</TableHead>
+                                        <TableHead className="w-[15%]">Trạng thái</TableHead>
+                                        <TableHead className="w-[15%]">Ưu tiên</TableHead>
+                                        <TableHead className="w-[10%]">Hạn chót</TableHead>
+                                      </TableRow>
+                                    </SubtaskTableHeader>
+                                    <TableBody>
+                                      {subtasks.map((subtask, index) => (
+                                        <SubtaskTableRow
+                                          key={subtask.id}
+                                          status={subtask.status}
+                                          parentStatus={task.status}
+                                          targetIndex={midIndex}
+                                          index={index}
+                                          isSingleSubtask={isSingleSubtask}
                                         >
-                                          {subtask.status === 'TODO'
-                                            ? 'TO DO'
-                                            : subtask.status === 'IN_PROGRESS'
-                                              ? 'Thực hiện'
-                                              : 'Xong'}
-                                        </span>
-                                      </TableCell>
-                                      <TableCell>
-                                        <span
-                                          className={`inline-block px-2 py-1 rounded text-xs font-medium ${getPriorityColor(subtask.priority)}`}
-                                        >
-                                          {subtask.priority === 'HIGH'
-                                            ? 'Cao'
-                                            : subtask.priority === 'MEDIUM'
-                                              ? 'TB'
-                                              : 'Thấp'}
-                                        </span>
-                                      </TableCell>
-                                      <TableCell></TableCell>
-                                    </SubtaskTableRow>
-                                  ))}
-                                  {/* Add Subtask Button */}
-                                  <AddTaskRow
-                                    onAddClick={() => console.warn('Add subtask clicked')}
-                                  />
-                                </TableBody>
-                              </table>
-                            </SubtaskContainer>
+                                          <TableCell className="text-sm">{subtask.title}</TableCell>
+                                          <TableCell>
+                                            <span
+                                              className={`inline-block px-2 py-1 rounded text-xs font-medium ${getStatusColor(subtask.status)}`}
+                                            >
+                                              {subtask.status === 'TODO'
+                                                ? 'TO DO'
+                                                : subtask.status === 'IN_PROGRESS'
+                                                  ? 'Thực hiện'
+                                                  : 'Xong'}
+                                            </span>
+                                          </TableCell>
+                                          <TableCell>
+                                            <span
+                                              className={`inline-block px-2 py-1 rounded text-xs font-medium ${getPriorityColor(subtask.priority)}`}
+                                            >
+                                              {subtask.priority === 'HIGH'
+                                                ? 'Cao'
+                                                : subtask.priority === 'MEDIUM'
+                                                  ? 'TB'
+                                                  : 'Thấp'}
+                                            </span>
+                                          </TableCell>
+                                          <TableCell></TableCell>
+                                        </SubtaskTableRow>
+                                      ))}
+                                      <AddTaskRow
+                                        parentStatus={task.status}
+                                        onAddClick={() => console.warn('Add subtask clicked')}
+                                        onAddTask={(title) => handleAddSubtask(task.id, title)}
+                                      >
+                                        + Thêm subtask
+                                      </AddTaskRow>
+                                    </TableBody>
+                                  </table>
+                                </SubtaskContainer>
+                              ); // Middle index for connector branch
+                            })()}
                           </TableCell>
                         </TableRow>
                       )}

@@ -130,6 +130,5 @@ export {
   ExpandableTaskRow,
   SubtaskTableHeader,
   AddTaskRow,
-  ConnectorLine,
 } from './table';
 export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
