@@ -1,13 +1,5 @@
-import { useState, useCallback, useMemo } from 'react';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-  KanbanColumn,
-  AddTaskDialog,
-  SearchAndFilter,
-} from '@/components';
+import { useCallback, useMemo } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger, KanbanColumn } from '@/components';
 import { useGetTasksQuery, useDeleteTaskMutation } from '@/api';
 import type { TaskStatus, TaskPriority } from '@/types';
 import { sortTasksByDeadline } from '@/lib';
@@ -18,18 +10,25 @@ import {
   useDragAndDrop,
 } from '@/hooks';
 
+interface KanbanBoardProps {
+  searchQuery: string;
+  filterStatus: TaskStatus | 'all';
+  filterPriority: TaskPriority | 'all';
+  onFilterStatusChange: (status: TaskStatus | 'all') => void;
+}
+
 const COLUMNS = [
   { status: 'TODO' as TaskStatus, label: 'TO DO', bgColor: 'bg-red-100' },
   { status: 'IN_PROGRESS' as TaskStatus, label: 'IN PROGRESS', bgColor: 'bg-yellow-100' },
   { status: 'DONE' as TaskStatus, label: 'DONE', bgColor: 'bg-green-100' },
 ] as const;
 
-export default function KanbanBoard() {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<TaskStatus | 'all'>('all');
-  const [filterPriority, setFilterPriority] = useState<TaskPriority | 'all'>('all');
-
+export default function KanbanBoard({
+  searchQuery,
+  filterStatus,
+  filterPriority,
+  onFilterStatusChange,
+}: KanbanBoardProps) {
   // RTK Query hooks for data fetching
   const { data: tasks = [] } = useGetTasksQuery();
   const [deleteTask] = useDeleteTaskMutation();
@@ -75,19 +74,8 @@ export default function KanbanBoard() {
   );
 
   return (
-    <div className="w-full min-h-screen bg-background p-6 pb-24 lg:pb-6">
+    <div className="w-full min-h-screen bg-background pb-24 lg:pb-6">
       <div className="max-w-7xl mx-auto">
-        {/* Search and Filter */}
-        <SearchAndFilter
-          onSearch={setSearchQuery}
-          onFilterStatus={setFilterStatus}
-          onFilterPriority={setFilterPriority}
-          searchValue={searchQuery}
-          filterStatus={filterStatus}
-          filterPriority={filterPriority}
-          onAddTask={() => setIsDialogOpen(true)}
-        />
-
         {/* Desktop Grid View */}
         <div
           className="hidden lg:grid gap-6"
@@ -126,7 +114,7 @@ export default function KanbanBoard() {
         <div className="lg:hidden">
           <Tabs
             value={filterStatus === 'all' ? 'TODO' : filterStatus}
-            onValueChange={(value) => setFilterStatus(value as TaskStatus)}
+            onValueChange={(value) => onFilterStatusChange(value as TaskStatus)}
           >
             <TabsList className="grid w-full grid-cols-3 mb-6">
               {COLUMNS.map((column) => (
@@ -157,9 +145,6 @@ export default function KanbanBoard() {
           </Tabs>
         </div>
       </div>
-
-      {/* Add Task Dialog */}
-      <AddTaskDialog isOpen={isDialogOpen} onOpenChange={setIsDialogOpen} />
     </div>
   );
 }
