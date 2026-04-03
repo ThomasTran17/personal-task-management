@@ -116,4 +116,14 @@ export {
 export { Skeleton } from './skeleton';
 export { Toaster } from './sonner';
 export { TabsContent, TabsList, TabsTrigger, Tabs } from './tabs';
+export {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from './table';
 export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';

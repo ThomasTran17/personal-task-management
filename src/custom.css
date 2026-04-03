@@ -21,3 +21,11 @@
 ::-webkit-scrollbar-corner {
   background: #000;
 }
+
+:root {
+  --table-border: #9c9c9c90;
+}
+
+@theme inline {
+  --color-table-border: var(--table-border);
+}
