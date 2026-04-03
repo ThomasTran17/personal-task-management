@@ -330,11 +330,13 @@ export default function TaskList() {
                                           key={subtask.id}
                                           status={subtask.status}
                                           parentStatus={task.status}
-                                          targetIndex={midIndex}
-                                          index={index}
+                                          hasConnector={index === midIndex}
                                           isSingleSubtask={isSingleSubtask}
                                         >
                                           <TableCell className="text-sm">{subtask.title}</TableCell>
+                                          <TableCell>
+                                            <span>Mô tả</span>
+                                          </TableCell>
                                           <TableCell>
                                             <span
                                               className={`inline-block px-2 py-1 rounded text-xs font-medium ${getStatusColor(subtask.status)}`}
@@ -356,9 +358,6 @@ export default function TaskList() {
                                                   ? 'TB'
                                                   : 'Thấp'}
                                             </span>
-                                          </TableCell>
-                                          <TableCell>
-                                            <span>Ưu tiên</span>
                                           </TableCell>
                                           <TableCell>
                                             <span>Hạn chót</span>

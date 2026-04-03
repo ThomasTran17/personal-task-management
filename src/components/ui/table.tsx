@@ -135,8 +135,7 @@ export function TableCaption({
 // The before:absolute pseudo-element creates the horizontal line connecting
 // the vertical stem (at -left-6) to the subtask row at top-1/2 (vertical center)
 interface SubtaskRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
-  targetIndex: number;
-  index: number;
+  hasConnector?: boolean;
   isSingleSubtask?: boolean; // New prop to handle single subtask case
   status?: TaskStatus;
   parentStatus?: TaskStatus;
@@ -144,16 +143,13 @@ interface SubtaskRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
 
 export function SubtaskTableRow({
   className,
-  targetIndex,
-  index,
+  hasConnector = false,
   isSingleSubtask = false,
   status,
   parentStatus,
   children,
   ...props
 }: SubtaskRowProps) {
-  const hasConnector = index === targetIndex;
-
   return (
     <tr
       className={cn('border-b-2 border-border transition-all hover:bg-main/10', className)}
