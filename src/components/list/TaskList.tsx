@@ -1,5 +1,4 @@
-import { useMemo, useState, useCallback } from 'react';
-import React from 'react';
+import { useState, useCallback } from 'react';
 import { useGetTasksQuery } from '@/api';
 import type { TaskPriority, TaskStatus } from '@/types';
 import type { Task } from '@/types/task';
@@ -22,6 +21,63 @@ interface Subtask {
   priority: TaskPriority;
 }
 
+// Configuration mapping for status labels and colors
+const STATUS_CONFIG = {
+  TODO: {
+    label: 'TO DO',
+    shortLabel: 'TO DO',
+    class: 'bg-red-100 text-red-800',
+  },
+  IN_PROGRESS: {
+    label: 'Đang thực hiện',
+    shortLabel: 'Thực hiện',
+    class: 'bg-yellow-100 text-yellow-800',
+  },
+  DONE: {
+    label: 'Hoàn thành',
+    shortLabel: 'Xong',
+    class: 'bg-green-100 text-green-800',
+  },
+} as const;
+
+// Configuration mapping for priority labels and colors
+const PRIORITY_CONFIG = {
+  HIGH: {
+    label: 'Cao',
+    shortLabel: 'Cao',
+    class: 'bg-red-100 text-red-800',
+  },
+  MEDIUM: {
+    label: 'Trung bình',
+    shortLabel: 'TB',
+    class: 'bg-yellow-100 text-yellow-800',
+  },
+  LOW: {
+    label: 'Thấp',
+    shortLabel: 'Thấp',
+    class: 'bg-green-100 text-green-800',
+  },
+} as const;
+
+// Utility functions for color mapping
+const getStatusColor = (status: TaskStatus): string => {
+  return STATUS_CONFIG[status]?.class || 'bg-gray-100 text-gray-800';
+};
+
+const getStatusLabel = (status: TaskStatus, isShort = false): string => {
+  return isShort ? STATUS_CONFIG[status]?.shortLabel || '' : STATUS_CONFIG[status]?.label || '';
+};
+
+const getPriorityColor = (priority: TaskPriority): string => {
+  return PRIORITY_CONFIG[priority]?.class || 'bg-gray-100 text-gray-800';
+};
+
+const getPriorityLabel = (priority: TaskPriority, isShort = false): string => {
+  return isShort
+    ? PRIORITY_CONFIG[priority]?.shortLabel || ''
+    : PRIORITY_CONFIG[priority]?.label || '';
+};
+
 // Mock data for testing table with subtasks and visual connectors
 const MOCK_SUBTASKS_MAP: Record<string, Subtask[]> = {
   'task-1': [
@@ -34,106 +90,157 @@ const MOCK_SUBTASKS_MAP: Record<string, Subtask[]> = {
   ],
 };
 
+// Mock tasks for UI demonstration
+const MOCK_TASKS: Task[] = [
+  {
+    id: 'task-1',
+    title: 'Setup Project Infrastructure',
+    description: 'Initialize database, API setup, and deployment pipeline',
+    status: 'DONE',
+    priority: 'HIGH',
+    createdAt: new Date('2026-03-15'),
+    updatedAt: new Date('2026-03-20'),
+    dueDate: new Date('2026-04-05'),
+  },
+  {
+    id: 'task-2',
+    title: 'Implement User Authentication',
+    description: 'Login, registration, password reset functionality',
+    status: 'IN_PROGRESS',
+    priority: 'HIGH',
+    createdAt: new Date('2026-03-18'),
+    updatedAt: new Date('2026-03-25'),
+    dueDate: new Date('2026-04-10'),
+  },
+  {
+    id: 'task-3',
+    title: 'Design Dashboard UI',
+    description: 'Create responsive dashboard with analytics',
+    status: 'TODO',
+    priority: 'MEDIUM',
+    createdAt: new Date('2026-03-20'),
+    updatedAt: new Date('2026-03-20'),
+    dueDate: new Date('2026-04-15'),
+  },
+  {
+    id: 'task-4',
+    title: 'Write API Documentation',
+    description: 'Document all endpoints and authentication flows',
+    status: 'TODO',
+    priority: 'LOW',
+    createdAt: new Date('2026-03-22'),
+    updatedAt: new Date('2026-03-22'),
+    dueDate: new Date('2026-04-20'),
+  },
+  {
+    id: 'task-5',
+    title: 'Deploy to Production',
+    description: 'Setup CI/CD pipeline and deploy application',
+    status: 'DONE',
+    priority: 'HIGH',
+    createdAt: new Date('2026-02-01'),
+    updatedAt: new Date('2026-03-10'),
+    dueDate: new Date('2026-03-10'),
+  },
+];
+
+// SubtaskList Component - Extracted logic for rendering subtasks
+interface SubtaskListProps {
+  subtasks: Subtask[];
+  parentTaskStatus: TaskStatus;
+  onAddSubtask: (title: string) => void;
+}
+
+function SubtaskList({ subtasks, parentTaskStatus, onAddSubtask }: SubtaskListProps) {
+  const midIndex = (subtasks.length - 1) >> 1;
+  const isSingleSubtask = subtasks.length === 1;
+
+  return (
+    <SubtaskContainer parentStatus={parentTaskStatus}>
+      <table className="w-full border-separate border-spacing-0 table-fixed">
+        <SubtaskTableHeader parentStatus={parentTaskStatus}>
+          <TableRow>
+            <TableHead
+              className={cn(
+                'align-middle',
+                'border-r-3 first:border-l-0 first:border-t-0',
+                'p-0',
+                getStatusBorderColors(parentTaskStatus).borderRight,
+                'w-[3%]'
+              )}
+            />
+            <TableHead className="w-[37%]">Tiêu đề</TableHead>
+            <TableHead className="w-[20%]">Mô tả</TableHead>
+            <TableHead className="w-[15%]">Trạng thái</TableHead>
+            <TableHead className="w-[15%]">Ưu tiên</TableHead>
+            <TableHead className="w-[10%]">Hạn chót</TableHead>
+          </TableRow>
+        </SubtaskTableHeader>
+        <TableBody>
+          {subtasks.map((subtask, index) => (
+            <SubtaskTableRow
+              key={subtask.id}
+              status={subtask.status}
+              parentStatus={parentTaskStatus}
+              hasConnector={index === midIndex}
+              isSingleSubtask={isSingleSubtask}
+            >
+              <TableCell className="text-sm">{subtask.title}</TableCell>
+              <TableCell>
+                <span>Mô tả</span>
+              </TableCell>
+              <TableCell>
+                <span
+                  className={`inline-block px-2 py-1 rounded text-xs font-medium ${getStatusColor(subtask.status)}`}
+                >
+                  {getStatusLabel(subtask.status, true)}
+                </span>
+              </TableCell>
+              <TableCell>
+                <span
+                  className={`inline-block px-2 py-1 rounded text-xs font-medium ${getPriorityColor(subtask.priority)}`}
+                >
+                  {getPriorityLabel(subtask.priority, true)}
+                </span>
+              </TableCell>
+              <TableCell>
+                <span>Hạn chót</span>
+              </TableCell>
+            </SubtaskTableRow>
+          ))}
+          <AddTaskRow
+            parentStatus={parentTaskStatus}
+            onAddClick={() => console.warn('Add subtask clicked')}
+            onAddTask={onAddSubtask}
+          >
+            + Thêm subtask
+          </AddTaskRow>
+        </TableBody>
+      </table>
+    </SubtaskContainer>
+  );
+}
+
 export default function TaskList() {
   const { data: tasksFromApi = [] } = useGetTasksQuery();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<TaskStatus | 'all'>('all');
   const [filterPriority, setFilterPriority] = useState<TaskPriority | 'all'>('all');
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set(['task-1', 'task-2']));
-
-  // Mock tasks for UI demonstration
-  const MOCK_TASKS: Task[] = [
-    {
-      id: 'task-1',
-      title: 'Setup Project Infrastructure',
-      description: 'Initialize database, API setup, and deployment pipeline',
-      status: 'DONE',
-      priority: 'HIGH',
-      createdAt: new Date('2026-03-15'),
-      updatedAt: new Date('2026-03-20'),
-      dueDate: new Date('2026-04-05'),
-    },
-    {
-      id: 'task-2',
-      title: 'Implement User Authentication',
-      description: 'Login, registration, password reset functionality',
-      status: 'IN_PROGRESS',
-      priority: 'HIGH',
-      createdAt: new Date('2026-03-18'),
-      updatedAt: new Date('2026-03-25'),
-      dueDate: new Date('2026-04-10'),
-    },
-    {
-      id: 'task-3',
-      title: 'Design Dashboard UI',
-      description: 'Create responsive dashboard with analytics',
-      status: 'TODO',
-      priority: 'MEDIUM',
-      createdAt: new Date('2026-03-20'),
-      updatedAt: new Date('2026-03-20'),
-      dueDate: new Date('2026-04-15'),
-    },
-    {
-      id: 'task-4',
-      title: 'Write API Documentation',
-      description: 'Document all endpoints and authentication flows',
-      status: 'TODO',
-      priority: 'LOW',
-      createdAt: new Date('2026-03-22'),
-      updatedAt: new Date('2026-03-22'),
-      dueDate: new Date('2026-04-20'),
-    },
-    {
-      id: 'task-5',
-      title: 'Deploy to Production',
-      description: 'Setup CI/CD pipeline and deploy application',
-      status: 'DONE',
-      priority: 'HIGH',
-      createdAt: new Date('2026-02-01'),
-      updatedAt: new Date('2026-03-10'),
-      dueDate: new Date('2026-03-10'),
-    },
-  ];
+  const [subtasksMap, setSubtasksMap] = useState<Record<string, Subtask[]>>(MOCK_SUBTASKS_MAP);
 
   // Use mock data if API data is empty, otherwise use API data
   const tasks = tasksFromApi.length > 0 ? tasksFromApi : MOCK_TASKS;
 
-  const filteredAndSortedTasks = useMemo(() => {
-    const result = tasks.filter((task) => {
+  // Filter and sort tasks
+  const filteredAndSortedTasks = tasks
+    .filter((task) => {
       const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus = filterStatus === 'all' || task.status === filterStatus;
       const matchesPriority = filterPriority === 'all' || task.priority === filterPriority;
       return matchesSearch && matchesStatus && matchesPriority;
-    });
-
-    return sortTasksByDeadline(result);
-  }, [tasks, searchQuery, filterStatus, filterPriority]);
-
-  const getPriorityColor = (priority: TaskPriority) => {
-    switch (priority) {
-      case 'HIGH':
-        return 'bg-red-100 text-red-800';
-      case 'MEDIUM':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'LOW':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusColor = (status: TaskStatus) => {
-    switch (status) {
-      case 'TODO':
-        return 'bg-red-100 text-red-800';
-      case 'IN_PROGRESS':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'DONE':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+    })
+    .sort((a, b) => (sortTasksByDeadline([a, b])[0] === a ? -1 : 1));
 
   // Toggle subtask expansion state
   const toggleExpanded = useCallback((taskId: string) => {
@@ -148,33 +255,27 @@ export default function TaskList() {
     });
   }, []);
 
-  // Get subtasks for a task ID from mock map
+  // Get subtasks for a task ID
   const getSubtasks = (taskId: string): Subtask[] => {
-    return MOCK_SUBTASKS_MAP[taskId] || [];
+    return subtasksMap[taskId] || [];
   };
 
-  // Handle adding a new subtask
+  // Handle adding a new subtask with immutable state update
   const handleAddSubtask = useCallback((parentTaskId: string, title: string) => {
-    const subtasks = getSubtasks(parentTaskId);
-    const newSubtask: Subtask = {
-      id: `sub-${parentTaskId}-${subtasks.length + 1}`,
-      title,
-      status: 'TODO',
-      priority: 'MEDIUM',
-    };
+    setSubtasksMap((prev) => {
+      const subtasks = prev[parentTaskId] || [];
+      const newSubtask: Subtask = {
+        id: `sub-${parentTaskId}-${subtasks.length + 1}`,
+        title,
+        status: 'TODO',
+        priority: 'MEDIUM',
+      };
 
-    // Create new map with updated subtasks
-    const newMap = { ...MOCK_SUBTASKS_MAP };
-    if (!newMap[parentTaskId]) {
-      newMap[parentTaskId] = [];
-    }
-    newMap[parentTaskId] = [...newMap[parentTaskId], newSubtask];
-
-    // Update the reference
-    Object.assign(MOCK_SUBTASKS_MAP, newMap);
-
-    // Force re-render by triggering state update
-    setExpandedTasks((prev) => new Set(prev));
+      return {
+        ...prev,
+        [parentTaskId]: [...(prev[parentTaskId] || []), newSubtask],
+      };
+    });
   }, []);
 
   return (
@@ -235,13 +336,13 @@ export default function TaskList() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredAndSortedTasks.map((task) => {
+                {filteredAndSortedTasks.map((task: Task) => {
                   const subtasks = getSubtasks(task.id);
                   const isExpanded = expandedTasks.has(task.id);
                   const hasSubtasks = subtasks.length > 0;
 
                   return (
-                    <React.Fragment key={task.id}>
+                    <>
                       {/* Parent Task Row - Neobrutalism with primary sidebar border */}
                       <ExpandableTaskRow
                         hasSubtasks={hasSubtasks}
@@ -260,22 +361,14 @@ export default function TaskList() {
                               <span
                                 className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}
                               >
-                                {task.status === 'TODO'
-                                  ? 'TO DO'
-                                  : task.status === 'IN_PROGRESS'
-                                    ? 'Đang thực hiện'
-                                    : 'Hoàn thành'}
+                                {getStatusLabel(task.status)}
                               </span>
                             </TableCell>
                             <TableCell>
                               <span
                                 className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}
                               >
-                                {task.priority === 'HIGH'
-                                  ? 'Cao'
-                                  : task.priority === 'MEDIUM'
-                                    ? 'Trung bình'
-                                    : 'Thấp'}
+                                {getPriorityLabel(task.priority)}
                               </span>
                             </TableCell>
                             <TableCell>
@@ -297,88 +390,15 @@ export default function TaskList() {
                               getStatusBorderColors(task.status).borderLeft
                             )}
                           >
-                            {(() => {
-                              const midIndex = (subtasks.length - 1) >> 1;
-                              const isSingleSubtask = subtasks.length === 1;
-
-                              return (
-                                <SubtaskContainer parentStatus={task.status}>
-                                  {/* Subtask Table Headers */}
-                                  <table className="w-full border-separate border-spacing-0 table-fixed">
-                                    <SubtaskTableHeader parentStatus={task.status}>
-                                      <TableRow>
-                                        <TableHead
-                                          className={cn(
-                                            'align-middle',
-                                            'border-r-3 first:border-l-0 first:border-t-0',
-                                            'p-0',
-                                            getStatusBorderColors(task.status).borderRight,
-                                            'w-[3%]'
-                                          )}
-                                        />
-                                        <TableHead className="w-[37%]">Tiêu đề</TableHead>
-                                        <TableHead className="w-[20%]">Mô tả</TableHead>
-                                        <TableHead className="w-[15%]">Trạng thái</TableHead>
-                                        <TableHead className="w-[15%]">Ưu tiên</TableHead>
-                                        <TableHead className="w-[10%]">Hạn chót</TableHead>
-                                      </TableRow>
-                                    </SubtaskTableHeader>
-                                    <TableBody>
-                                      {subtasks.map((subtask, index) => (
-                                        <SubtaskTableRow
-                                          key={subtask.id}
-                                          status={subtask.status}
-                                          parentStatus={task.status}
-                                          hasConnector={index === midIndex}
-                                          isSingleSubtask={isSingleSubtask}
-                                        >
-                                          <TableCell className="text-sm">{subtask.title}</TableCell>
-                                          <TableCell>
-                                            <span>Mô tả</span>
-                                          </TableCell>
-                                          <TableCell>
-                                            <span
-                                              className={`inline-block px-2 py-1 rounded text-xs font-medium ${getStatusColor(subtask.status)}`}
-                                            >
-                                              {subtask.status === 'TODO'
-                                                ? 'TO DO'
-                                                : subtask.status === 'IN_PROGRESS'
-                                                  ? 'Thực hiện'
-                                                  : 'Xong'}
-                                            </span>
-                                          </TableCell>
-                                          <TableCell>
-                                            <span
-                                              className={`inline-block px-2 py-1 rounded text-xs font-medium ${getPriorityColor(subtask.priority)}`}
-                                            >
-                                              {subtask.priority === 'HIGH'
-                                                ? 'Cao'
-                                                : subtask.priority === 'MEDIUM'
-                                                  ? 'TB'
-                                                  : 'Thấp'}
-                                            </span>
-                                          </TableCell>
-                                          <TableCell>
-                                            <span>Hạn chót</span>
-                                          </TableCell>
-                                        </SubtaskTableRow>
-                                      ))}
-                                      <AddTaskRow
-                                        parentStatus={task.status}
-                                        onAddClick={() => console.warn('Add subtask clicked')}
-                                        onAddTask={(title) => handleAddSubtask(task.id, title)}
-                                      >
-                                        + Thêm subtask
-                                      </AddTaskRow>
-                                    </TableBody>
-                                  </table>
-                                </SubtaskContainer>
-                              ); // Middle index for connector branch
-                            })()}
+                            <SubtaskList
+                              subtasks={subtasks}
+                              parentTaskStatus={task.status}
+                              onAddSubtask={(title) => handleAddSubtask(task.id, title)}
+                            />
                           </TableCell>
                         </TableRow>
                       )}
-                    </React.Fragment>
+                    </>
                   );
                 })}
                 <AddTaskRow onAddClick={() => console.warn('Add subtask clicked')}>
