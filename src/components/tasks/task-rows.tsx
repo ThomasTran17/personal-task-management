@@ -17,7 +17,7 @@ interface SubtaskRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
   parentStatus?: TaskStatus;
 }
 
-export function SubtaskTableRow({
+function SubtaskTableRowComponent({
   className,
   hasConnector = false,
   isSingleSubtask = false,
@@ -53,6 +53,8 @@ export function SubtaskTableRow({
   );
 }
 
+export const SubtaskTableRow = React.memo(SubtaskTableRowComponent);
+
 // Subtask Container with vertical connector stem
 // CONNECTOR IMPLEMENTATION: Vertical stem of L-shape
 // The before:absolute pseudo-element creates the vertical line connecting
@@ -61,13 +63,15 @@ interface SubtaskContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   parentStatus?: TaskStatus;
 }
 
-export function SubtaskContainer({ className, children, ...props }: SubtaskContainerProps) {
+function SubtaskContainerComponent({ className, children, ...props }: SubtaskContainerProps) {
   return (
     <div className={cn('py-6', className)} {...props}>
       {children}
     </div>
   );
 }
+
+export const SubtaskContainer = React.memo(SubtaskContainerComponent);
 
 // Expandable Task Row with toggle UI
 // Primary Sidebar Implementation: border-s-[3px] creates prominent left border (Neubrutalism)
@@ -79,7 +83,7 @@ interface ExpandableTaskRowProps extends React.HTMLAttributes<HTMLTableRowElemen
   status?: TaskStatus;
 }
 
-export function ExpandableTaskRow({
+function ExpandableTaskRowComponent({
   className,
   hasSubtasks = false,
   isExpanded = false,
@@ -136,6 +140,8 @@ export function ExpandableTaskRow({
   );
 }
 
+export const ExpandableTaskRow = React.memo(ExpandableTaskRowComponent);
+
 // Subtask Header Row - smaller text and muted foreground
 // Applied only when displaying subtask list headers (inside SubtaskContainer)
 // Styling: text-xs + text-foreground/60 creates visual hierarchy differentiation from parent
@@ -143,7 +149,7 @@ interface SubtaskTableHeaderProps extends React.HTMLAttributes<HTMLTableSectionE
   parentStatus?: TaskStatus;
 }
 
-export function SubtaskTableHeader({
+function SubtaskTableHeaderComponent({
   className,
   parentStatus,
   children,
@@ -166,6 +172,8 @@ export function SubtaskTableHeader({
   );
 }
 
+export const SubtaskTableHeader = React.memo(SubtaskTableHeaderComponent);
+
 // Add Task Row - Styled like a subtask row with quick input functionality
 // Footer Action: This row is placed at the bottom of subtask list
 // Feature: Inline input for quick task title entry
@@ -175,7 +183,7 @@ interface AddTaskRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
   parentStatus?: TaskStatus;
 }
 
-export function AddTaskRow({
+function AddTaskRowComponent({
   className,
   onAddClick,
   onAddTask,
@@ -237,3 +245,5 @@ export function AddTaskRow({
     </tr>
   );
 }
+
+export const AddTaskRow = React.memo(AddTaskRowComponent);

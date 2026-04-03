@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import React from 'react';
 import { useGetTasksQuery } from '@/api';
 import type { TaskPriority, TaskStatus } from '@/types';
@@ -136,7 +136,7 @@ export default function TaskList() {
   };
 
   // Toggle subtask expansion state
-  const toggleExpanded = (taskId: string) => {
+  const toggleExpanded = useCallback((taskId: string) => {
     setExpandedTasks((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(taskId)) {
@@ -146,7 +146,7 @@ export default function TaskList() {
       }
       return newSet;
     });
-  };
+  }, []);
 
   // Get subtasks for a task ID from mock map
   const getSubtasks = (taskId: string): Subtask[] => {
@@ -154,7 +154,7 @@ export default function TaskList() {
   };
 
   // Handle adding a new subtask
-  const handleAddSubtask = (parentTaskId: string, title: string) => {
+  const handleAddSubtask = useCallback((parentTaskId: string, title: string) => {
     const subtasks = getSubtasks(parentTaskId);
     const newSubtask: Subtask = {
       id: `sub-${parentTaskId}-${subtasks.length + 1}`,
@@ -175,7 +175,7 @@ export default function TaskList() {
 
     // Force re-render by triggering state update
     setExpandedTasks((prev) => new Set(prev));
-  };
+  }, []);
 
   return (
     <div className="w-full min-h-screen bg-background p-6 pb-24 lg:pb-6">

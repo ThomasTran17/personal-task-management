@@ -19,31 +19,36 @@ export function useTaskInput(
   const [inputValue, setInputValue] = React.useState('');
   const inputRef = React.useRef<HTMLInputElement | null>(null);
 
-  const handleClick = () => {
+  const handleClick = React.useCallback(() => {
     setIsEditing(true);
     onAddClick?.();
-  };
+  }, [onAddClick]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
-  };
+  }, []);
 
-  const handleSave = () => {
-    if (inputValue.trim()) {
-      onAddTask?.(inputValue);
-      setInputValue('');
-      setIsEditing(false);
-    }
-  };
+  const handleSave = React.useCallback(() => {
+    setInputValue((prevValue) => {
+      if (prevValue.trim()) {
+        onAddTask?.(prevValue);
+        setIsEditing(false);
+      }
+      return prevValue;
+    });
+  }, [onAddTask]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSave();
-    } else if (e.key === 'Escape') {
-      setInputValue('');
-      setIsEditing(false);
-    }
-  };
+  const handleKeyDown = React.useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        handleSave();
+      } else if (e.key === 'Escape') {
+        setInputValue('');
+        setIsEditing(false);
+      }
+    },
+    [handleSave]
+  );
 
   React.useEffect(() => {
     if (isEditing && inputRef.current) {
