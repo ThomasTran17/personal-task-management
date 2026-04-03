@@ -24,18 +24,18 @@ interface Subtask {
 // Configuration mapping for status labels and colors
 const STATUS_CONFIG = {
   TODO: {
-    label: 'TO DO',
-    shortLabel: 'TO DO',
+    label: 'To Do',
+    shortLabel: 'To Do',
     class: 'bg-red-100 text-red-800',
   },
   IN_PROGRESS: {
-    label: 'Đang thực hiện',
-    shortLabel: 'Thực hiện',
+    label: 'In Progress',
+    shortLabel: 'Progress',
     class: 'bg-yellow-100 text-yellow-800',
   },
   DONE: {
-    label: 'Hoàn thành',
-    shortLabel: 'Xong',
+    label: 'Done',
+    shortLabel: 'Done',
     class: 'bg-green-100 text-green-800',
   },
 } as const;
@@ -43,18 +43,18 @@ const STATUS_CONFIG = {
 // Configuration mapping for priority labels and colors
 const PRIORITY_CONFIG = {
   HIGH: {
-    label: 'Cao',
-    shortLabel: 'Cao',
+    label: 'High',
+    shortLabel: 'High',
     class: 'bg-red-100 text-red-800',
   },
   MEDIUM: {
-    label: 'Trung bình',
-    shortLabel: 'TB',
+    label: 'Medium',
+    shortLabel: 'Med',
     class: 'bg-yellow-100 text-yellow-800',
   },
   LOW: {
-    label: 'Thấp',
-    shortLabel: 'Thấp',
+    label: 'Low',
+    shortLabel: 'Low',
     class: 'bg-green-100 text-green-800',
   },
 } as const;
@@ -169,11 +169,11 @@ function SubtaskList({ subtasks, parentTaskStatus, onAddSubtask }: SubtaskListPr
                 'w-[3%]'
               )}
             />
-            <TableHead className="w-[37%]">Tiêu đề</TableHead>
-            <TableHead className="w-[20%]">Mô tả</TableHead>
-            <TableHead className="w-[15%]">Trạng thái</TableHead>
-            <TableHead className="w-[15%]">Ưu tiên</TableHead>
-            <TableHead className="w-[10%]">Hạn chót</TableHead>
+            <TableHead className="w-[37%]">Title</TableHead>
+            <TableHead className="w-[20%]">Description</TableHead>
+            <TableHead className="w-[15%]">Status</TableHead>
+            <TableHead className="w-[15%]">Priority</TableHead>
+            <TableHead className="w-[10%]">Due Date</TableHead>
           </TableRow>
         </SubtaskTableHeader>
         <TableBody>
@@ -187,7 +187,7 @@ function SubtaskList({ subtasks, parentTaskStatus, onAddSubtask }: SubtaskListPr
             >
               <TableCell className="text-sm">{subtask.title}</TableCell>
               <TableCell>
-                <span>Mô tả</span>
+                <span>Description</span>
               </TableCell>
               <TableCell>
                 <span
@@ -204,7 +204,7 @@ function SubtaskList({ subtasks, parentTaskStatus, onAddSubtask }: SubtaskListPr
                 </span>
               </TableCell>
               <TableCell>
-                <span>Hạn chót</span>
+                <span>Due Date</span>
               </TableCell>
             </SubtaskTableRow>
           ))}
@@ -213,7 +213,7 @@ function SubtaskList({ subtasks, parentTaskStatus, onAddSubtask }: SubtaskListPr
             onAddClick={() => console.warn('Add subtask clicked')}
             onAddTask={onAddSubtask}
           >
-            + Thêm subtask
+            + Add Subtask
           </AddTaskRow>
         </TableBody>
       </table>
@@ -223,24 +223,14 @@ function SubtaskList({ subtasks, parentTaskStatus, onAddSubtask }: SubtaskListPr
 
 export default function TaskList() {
   const { data: tasksFromApi = [] } = useGetTasksQuery();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<TaskStatus | 'all'>('all');
-  const [filterPriority, setFilterPriority] = useState<TaskPriority | 'all'>('all');
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set(['task-1', 'task-2']));
   const [subtasksMap, setSubtasksMap] = useState<Record<string, Subtask[]>>(MOCK_SUBTASKS_MAP);
 
   // Use mock data if API data is empty, otherwise use API data
   const tasks = tasksFromApi.length > 0 ? tasksFromApi : MOCK_TASKS;
 
-  // Filter and sort tasks
-  const filteredAndSortedTasks = tasks
-    .filter((task) => {
-      const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = filterStatus === 'all' || task.status === filterStatus;
-      const matchesPriority = filterPriority === 'all' || task.priority === filterPriority;
-      return matchesSearch && matchesStatus && matchesPriority;
-    })
-    .sort((a, b) => (sortTasksByDeadline([a, b])[0] === a ? -1 : 1));
+  // Sort tasks by deadline
+  const filteredAndSortedTasks = sortTasksByDeadline([...tasks]);
 
   // Toggle subtask expansion state
   const toggleExpanded = useCallback((taskId: string) => {
@@ -281,58 +271,23 @@ export default function TaskList() {
   return (
     <div className="w-full min-h-screen bg-background p-6 pb-24 lg:pb-6">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Danh sách công việc</h1>
-
-        {/* Search and Filters */}
-        <div className="space-y-4 mb-6">
-          <input
-            type="text"
-            placeholder="Tìm kiếm công việc..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-
-          <div className="flex gap-4 flex-wrap">
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value as TaskStatus | 'all')}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="TODO">TO DO</option>
-              <option value="IN_PROGRESS">Đang thực hiện</option>
-              <option value="DONE">Hoàn thành</option>
-            </select>
-
-            <select
-              value={filterPriority}
-              onChange={(e) => setFilterPriority(e.target.value as TaskPriority | 'all')}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">Tất cả mức độ ưu tiên</option>
-              <option value="LOW">Thấp</option>
-              <option value="MEDIUM">Trung bình</option>
-              <option value="HIGH">Cao</option>
-            </select>
-          </div>
-        </div>
+        <h1 className="text-3xl font-bold mb-6">Task List</h1>
 
         {/* Task Table */}
         {filteredAndSortedTasks.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-            <p className="text-gray-500 text-lg">Không có công việc nào</p>
+            <p className="text-gray-500 text-lg">No tasks available</p>
           </div>
         ) : (
           <div>
             <Table className="border-l-0">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[40%]">Tiêu đề</TableHead>
-                  <TableHead className="w-[20%]">Mô tả</TableHead>
-                  <TableHead className="w-[15%]">Trạng thái</TableHead>
-                  <TableHead className="w-[15%]">Ưu tiên</TableHead>
-                  <TableHead className="w-[10%]">Hạn chót</TableHead>
+                  <TableHead className="w-[40%]">Title</TableHead>
+                  <TableHead className="w-[20%]">Description</TableHead>
+                  <TableHead className="w-[15%]">Status</TableHead>
+                  <TableHead className="w-[15%]">Priority</TableHead>
+                  <TableHead className="w-[10%]">Due Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -402,7 +357,7 @@ export default function TaskList() {
                   );
                 })}
                 <AddTaskRow onAddClick={() => console.warn('Add subtask clicked')}>
-                  + Thêm subtask
+                  + Add Subtask
                 </AddTaskRow>
               </TableBody>
             </Table>
