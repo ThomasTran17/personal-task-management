@@ -224,7 +224,7 @@ function AddTaskRowComponent({
             ref={inputRef}
             type="text"
             value={inputValue}
-            onChange={handleInputChange}
+            onChange={(e) => handleInputChange(e.target.value)}
             onBlur={handleSave}
             onKeyDown={handleKeyDown}
             placeholder="Enter task title..."

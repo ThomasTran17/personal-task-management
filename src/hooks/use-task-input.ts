@@ -6,7 +6,7 @@ export interface UseTaskInputReturn {
   inputValue: string;
   inputRef: React.RefObject<HTMLInputElement | null>;
   handleClick: () => void;
-  handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleInputChange: (value: string) => void;
   handleSave: () => void;
   handleKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }
@@ -24,19 +24,17 @@ export function useTaskInput(
     onAddClick?.();
   }, [onAddClick]);
 
-  const handleInputChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
+  const handleInputChange = React.useCallback((value: string) => {
+    setInputValue(value);
   }, []);
 
   const handleSave = React.useCallback(() => {
-    setInputValue((prevValue) => {
-      if (prevValue.trim()) {
-        onAddTask?.(prevValue);
-        setIsEditing(false);
-      }
-      return prevValue;
-    });
-  }, [onAddTask]);
+    if (inputValue.trim()) {
+      onAddTask?.(inputValue);
+      setInputValue('');
+      setIsEditing(false);
+    }
+  }, [inputValue, onAddTask]);
 
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
