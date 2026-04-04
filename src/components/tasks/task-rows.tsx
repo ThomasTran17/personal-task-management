@@ -33,7 +33,7 @@ function SubtaskTableRowComponent({
     >
       <td
         className={cn(
-          'align-middle truncate max-w-0 border-r-3 relative',
+          'align-middle truncate max-w-0 border-r-5 relative',
           getStatusColor(status).borderRight
         )}
       >
@@ -106,7 +106,13 @@ function ExpandableTaskRowComponent({
       {...props}
     >
       {/* Title cell with expand button */}
-      <TableCell className={cn(getStatusColor(status).borderLeft, 'first:border-l-3')}>
+      <TableCell className={cn(getStatusColor(status).borderLeft)}>
+        <div
+          className={cn(
+            getStatusColor(status).background,
+            'absolute -left-[5px] top-0 bottom-0 w-[5px] h-[41px]'
+          )}
+        />
         <div className="flex items-center gap-2">
           {hasSubtasks && (
             <button
@@ -147,10 +153,9 @@ function SubtaskTableHeaderComponent({
     <thead
       className={cn(
         'border border-border',
-        'border-l-3 border-r-0',
+        'border-l-1 border-r-0',
         getStatusColor(parentStatus).borderLeft,
         'text-xs text-foreground/60',
-        'sticky top-0 z-9',
         className
       )}
       {...props}
@@ -201,7 +206,7 @@ function AddTaskRowComponent({
       {parentStatus && (
         <td
           className={cn(
-            'ps-4 pe-4 py-2 align-middle truncate max-w-0 border-r-3',
+            'ps-4 pe-4 py-2 align-middle truncate max-w-0 border-r-5',
             getStatusColor(parentStatus).borderRight
           )}
         />

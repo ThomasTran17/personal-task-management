@@ -163,7 +163,7 @@ function SubtaskList({ subtasks, parentTaskStatus, onAddSubtask }: SubtaskListPr
             <TableHead
               className={cn(
                 'align-middle',
-                'border-r-3 first:border-l-0 first:border-t-0',
+                'border-r-5 first:border-l-0 first:border-t-0',
                 'p-0',
                 getStatusBorderColors(parentTaskStatus).borderRight,
                 'w-[3%]'
@@ -269,7 +269,7 @@ export default function TaskList() {
   }, []);
 
   return (
-    <div className="w-full min-h-screen bg-background p-6 pb-24 lg:pb-6">
+    <div className="w-full min-h-screen bg-background pb-24 lg:pb-6">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold mb-6">Task List</h1>
 
@@ -337,7 +337,7 @@ export default function TaskList() {
 
                       {/* Subtasks Container - L-shaped visual connectors */}
                       {hasSubtasks && isExpanded && (
-                        <TableRow className={cn('border-b-0 border-l-1 p-0')}>
+                        <TableRow className={'border-b-0 border-l-1 p-0'}>
                           <TableCell
                             colSpan={6}
                             className={cn(

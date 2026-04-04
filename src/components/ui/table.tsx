@@ -13,7 +13,7 @@ const CELL_CHECKBOX_ADJUSTMENT = '[&:has([role=checkbox])]:pe-0';
 // Main Table Component - Inherits Neubrutalism tokens from index.css
 export function Table({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="w-full overflow-auto">
+    <div className="w-full">
       <table className={cn(TABLE_BASE_CLASSES, className)} {...props} />
     </div>
   );
@@ -26,11 +26,7 @@ export function TableHeader({
 }: React.HTMLAttributes<HTMLTableSectionElement>) {
   return (
     <thead
-      className={cn(
-        'text-main-foreground sticky top-0 z-10',
-        TABLE_HEADER_BORDER_CLASSES,
-        className
-      )}
+      className={cn('text-main-foreground top-0 z-10', TABLE_HEADER_BORDER_CLASSES, className)}
       {...props}
     />
   );
