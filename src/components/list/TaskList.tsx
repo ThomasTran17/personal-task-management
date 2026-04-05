@@ -1,9 +1,17 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useGetTasksQuery } from '@/api';
 import type { TaskPriority, TaskStatus } from '@/types';
 import type { Task } from '@/types/task';
 import { cn, sortTasksByDeadline } from '@/lib';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  Checkbox,
+} from '@/components/ui';
 import {
   ExpandableTaskRow,
   SubtaskContainer,
@@ -11,6 +19,7 @@ import {
   SubtaskTableRow,
   AddTaskRow,
   getStatusColor as getStatusBorderColors,
+  BulkActions,
 } from '@/components/tasks';
 
 // Mock subtask type for testing UI hierarchy
@@ -225,6 +234,7 @@ export default function TaskList() {
   const { data: tasksFromApi = [] } = useGetTasksQuery();
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set(['task-1', 'task-2']));
   const [subtasksMap, setSubtasksMap] = useState<Record<string, Subtask[]>>(MOCK_SUBTASKS_MAP);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Use mock data if API data is empty, otherwise use API data
   const tasks = tasksFromApi.length > 0 ? tasksFromApi : MOCK_TASKS;
@@ -232,18 +242,81 @@ export default function TaskList() {
   // Sort tasks by deadline
   const filteredAndSortedTasks = sortTasksByDeadline([...tasks]);
 
+  // Derived state for "Select All" logic
+  const isAllSelected = useMemo(() => {
+    return filteredAndSortedTasks.length > 0 && selectedIds.size === filteredAndSortedTasks.length;
+  }, [selectedIds.size, filteredAndSortedTasks.length]);
+
+  // Toggle single row selection
+  const handleRowToggle = useCallback(
+    (taskId: string) => {
+      setSelectedIds((prev) => {
+        const newSet = new Set(prev);
+        if (newSet.has(taskId)) {
+          newSet.delete(taskId);
+        } else {
+          newSet.add(taskId);
+        }
+        return newSet;
+      });
+    },
+    [setSelectedIds]
+  );
+
+  // Toggle select all
+  const handleSelectAll = useCallback(() => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredAndSortedTasks.map((task) => task.id)));
+    }
+  }, [isAllSelected, filteredAndSortedTasks, setSelectedIds]);
+
+  // Clear selection
+  const handleClearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, [setSelectedIds]);
+
+  // Bulk actions
+  const handleBulkDelete = useCallback(() => {
+    console.warn('Delete selected tasks:', Array.from(selectedIds));
+    // TODO: Implement API call to delete tasks
+    setSelectedIds(new Set());
+  }, [selectedIds, setSelectedIds]);
+
+  const handleBulkStatusChange = useCallback(
+    (status: TaskStatus) => {
+      console.warn('Change status to:', status, 'for tasks:', Array.from(selectedIds));
+      // TODO: Implement API call to update task status
+      setSelectedIds(new Set());
+    },
+    [selectedIds, setSelectedIds]
+  );
+
+  const handleBulkPriorityChange = useCallback(
+    (priority: TaskPriority) => {
+      console.warn('Change priority to:', priority, 'for tasks:', Array.from(selectedIds));
+      // TODO: Implement API call to update task priority
+      setSelectedIds(new Set());
+    },
+    [selectedIds, setSelectedIds]
+  );
+
   // Toggle subtask expansion state
-  const toggleExpanded = useCallback((taskId: string) => {
-    setExpandedTasks((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(taskId)) {
-        newSet.delete(taskId);
-      } else {
-        newSet.add(taskId);
-      }
-      return newSet;
-    });
-  }, []);
+  const toggleExpanded = useCallback(
+    (taskId: string) => {
+      setExpandedTasks((prev) => {
+        const newSet = new Set(prev);
+        if (newSet.has(taskId)) {
+          newSet.delete(taskId);
+        } else {
+          newSet.add(taskId);
+        }
+        return newSet;
+      });
+    },
+    [setExpandedTasks]
+  );
 
   // Get subtasks for a task ID
   const getSubtasks = (taskId: string): Subtask[] => {
@@ -251,22 +324,25 @@ export default function TaskList() {
   };
 
   // Handle adding a new subtask with immutable state update
-  const handleAddSubtask = useCallback((parentTaskId: string, title: string) => {
-    setSubtasksMap((prev) => {
-      const subtasks = prev[parentTaskId] || [];
-      const newSubtask: Subtask = {
-        id: `sub-${parentTaskId}-${subtasks.length + 1}`,
-        title,
-        status: 'TODO',
-        priority: 'MEDIUM',
-      };
+  const handleAddSubtask = useCallback(
+    (parentTaskId: string, title: string) => {
+      setSubtasksMap((prev) => {
+        const subtasks = prev[parentTaskId] || [];
+        const newSubtask: Subtask = {
+          id: `sub-${parentTaskId}-${subtasks.length + 1}`,
+          title,
+          status: 'TODO',
+          priority: 'MEDIUM',
+        };
 
-      return {
-        ...prev,
-        [parentTaskId]: [...(prev[parentTaskId] || []), newSubtask],
-      };
-    });
-  }, []);
+        return {
+          ...prev,
+          [parentTaskId]: [...(prev[parentTaskId] || []), newSubtask],
+        };
+      });
+    },
+    [setSubtasksMap]
+  );
 
   return (
     <div className="w-full min-h-screen bg-background pb-24 lg:pb-6">
@@ -283,7 +359,14 @@ export default function TaskList() {
             <Table className="border-l-0">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[40%]">Title</TableHead>
+                  <TableHead className="w-[5%] ps-0 text-center">
+                    <Checkbox
+                      checked={isAllSelected}
+                      onCheckedChange={handleSelectAll}
+                      aria-label="Select all tasks"
+                    />
+                  </TableHead>
+                  <TableHead className="w-[36%]">Title</TableHead>
                   <TableHead className="w-[20%]">Description</TableHead>
                   <TableHead className="w-[15%]">Status</TableHead>
                   <TableHead className="w-[15%]">Priority</TableHead>
@@ -304,6 +387,8 @@ export default function TaskList() {
                         isExpanded={isExpanded}
                         onToggleSubtasks={() => toggleExpanded(task.id)}
                         status={task.status}
+                        isSelected={selectedIds.has(task.id)}
+                        onSelectionChange={() => handleRowToggle(task.id)}
                         titleContent={
                           <span className="font-semibold text-gray-900">{task.title}</span>
                         }
@@ -339,7 +424,7 @@ export default function TaskList() {
                       {hasSubtasks && isExpanded && (
                         <TableRow className={'border-b-0 border-l-1 p-0'}>
                           <TableCell
-                            colSpan={6}
+                            colSpan={7}
                             className={cn(
                               'p-0 border-r-0',
                               getStatusBorderColors(task.status).borderLeft
@@ -363,6 +448,15 @@ export default function TaskList() {
             </Table>
           </div>
         )}
+
+        {/* Bulk Actions Bar */}
+        <BulkActions
+          selectedCount={selectedIds.size}
+          onDelete={handleBulkDelete}
+          onStatusChange={handleBulkStatusChange}
+          onPriorityChange={handleBulkPriorityChange}
+          onClearSelection={handleClearSelection}
+        />
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib';
 import { useTaskInput } from '@/hooks/use-task-input';
 import { TableCell } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import type { TaskStatus } from '@/types/task';
 import { getStatusColor } from './task-status-colors';
 
@@ -82,6 +83,9 @@ interface ExpandableTaskRowProps extends React.HTMLAttributes<HTMLTableRowElemen
   isExpanded?: boolean;
   onToggleSubtasks?: (expanded: boolean) => void;
   status?: TaskStatus;
+  // Bulk Selection
+  isSelected?: boolean;
+  onSelectionChange?: () => void;
   // Slot Pattern - Explicit named slots for type-safety
   titleContent: React.ReactNode;
   actionContent?: React.ReactNode;
@@ -93,6 +97,8 @@ function ExpandableTaskRowComponent({
   isExpanded = false,
   onToggleSubtasks,
   status,
+  isSelected = false,
+  onSelectionChange,
   titleContent,
   actionContent,
   ...props
@@ -105,6 +111,15 @@ function ExpandableTaskRowComponent({
       )}
       {...props}
     >
+      {/* Checkbox cell - sticky for easy selection */}
+      <TableCell className="ps-0 text-center">
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={onSelectionChange}
+          aria-label="Select task"
+        />
+      </TableCell>
+
       {/* Title cell with expand button */}
       <TableCell className={cn(getStatusColor(status).borderLeft)}>
         <div
