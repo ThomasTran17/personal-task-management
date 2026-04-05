@@ -203,6 +203,7 @@ interface AddTaskRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
   onAddClick?: () => void;
   onAddTask?: (title: string) => void;
   parentStatus?: TaskStatus;
+  status?: TaskStatus;
 }
 
 function AddTaskRowComponent({
@@ -210,6 +211,7 @@ function AddTaskRowComponent({
   onAddClick,
   onAddTask,
   parentStatus,
+  status,
   children,
   ...props
 }: AddTaskRowProps) {
@@ -226,7 +228,7 @@ function AddTaskRowComponent({
   return (
     <tr
       className={cn(
-        'border-b-2 border-border border-s-3 transition-all hover:bg-main/10',
+        'border-b-2 border-border border-s-3 transition-all hover:bg-main/10 relative',
         getStatusColor(parentStatus).borderLeft,
         className
       )}
@@ -240,6 +242,7 @@ function AddTaskRowComponent({
           )}
         />
       )}
+
       <TableCell colSpan={6} className="ps-0 pe-0 border-b-1">
         {isEditing ? (
           <input
@@ -264,6 +267,14 @@ function AddTaskRowComponent({
           </div>
         )}
       </TableCell>
+      {status && (
+        <div
+          className={cn(
+            getStatusColor(status).background,
+            'absolute -left-[5px] top-0 bottom-0 w-[5px] h-[45px]'
+          )}
+        />
+      )}
     </tr>
   );
 }

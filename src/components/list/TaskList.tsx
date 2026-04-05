@@ -21,6 +21,7 @@ import {
   getStatusColor as getStatusBorderColors,
   BulkActions,
 } from '@/components/tasks';
+import { getStatusColor as getBorderColor } from '@/components/tasks/task-status-colors';
 
 // Mock subtask type for testing UI hierarchy
 interface Subtask {
@@ -259,9 +260,11 @@ export default function TaskList() {
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set(['task-1', 'task-2']));
   const [subtasksMap, setSubtasksMap] = useState<Record<string, Subtask[]>>(MOCK_SUBTASKS_MAP);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [localTasks, setLocalTasks] = useState<Task[]>([]);
 
   // Use mock data if API data is empty, otherwise use API data
-  const tasks = tasksFromApi.length > 0 ? tasksFromApi : MOCK_TASKS;
+  const tasks =
+    tasksFromApi.length > 0 ? tasksFromApi : localTasks.length > 0 ? localTasks : MOCK_TASKS;
 
   // Sort tasks by deadline
   const filteredAndSortedTasks = sortTasksByDeadline([...tasks]);
@@ -380,6 +383,31 @@ export default function TaskList() {
     [setSubtasksMap]
   );
 
+  // Handle adding a new parent task
+  const handleAddTask = useCallback(
+    (title: string) => {
+      if (!title.trim()) return;
+
+      const newTask: Task = {
+        id: `task-${Date.now()}`,
+        title: title.trim(),
+        description: '',
+        status: 'TODO',
+        priority: 'MEDIUM',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        dueDate: new Date(new Date().setDate(new Date().getDate() + 7)), // Default to 7 days from now
+      };
+
+      // Add to local state to update UI immediately
+      setLocalTasks((prev) => [newTask, ...prev]);
+
+      // TODO: Implement API call to create task
+      console.warn('Add task clicked:', newTask);
+    },
+    [setLocalTasks]
+  );
+
   // TOP-DOWN SYNC: Parent toggle syncs all visible children (View-Driven)
   // Pattern: Only operate on selectedIds Set (No separate subtask state)
   const handleParentSelectionChange = useCallback(
@@ -442,6 +470,13 @@ export default function TaskList() {
     [setSelectedIds]
   );
 
+  const getCurrentStatus: () => TaskStatus = useCallback(() => {
+    if (tasks.every(({ status }) => status === 'DONE')) {
+      return 'DONE';
+    }
+    return 'IN_PROGRESS';
+  }, [tasks]);
+
   return (
     <div className="w-full min-h-screen bg-background pb-24 lg:pb-6">
       <div className="max-w-6xl mx-auto">
@@ -457,7 +492,13 @@ export default function TaskList() {
             <Table className="border-l-0">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[5%] ps-0 text-center">
+                  <TableHead className="w-[5%] ps-0 text-center relative border-l-0 overflow-visible">
+                    <div
+                      className={cn(
+                        getBorderColor(getCurrentStatus()).background,
+                        'absolute -left-[3px] -top-[1px] bottom-0 w-[5px] h-[50px]'
+                      )}
+                    />
                     <Checkbox
                       checked={isAllSelected}
                       onCheckedChange={handleSelectAll}
@@ -548,8 +589,8 @@ export default function TaskList() {
                     </>
                   );
                 })}
-                <AddTaskRow onAddClick={() => console.warn('Add subtask clicked')}>
-                  + Add Subtask
+                <AddTaskRow onAddTask={handleAddTask} status={getCurrentStatus()}>
+                  + Add Task
                 </AddTaskRow>
               </TableBody>
             </Table>
