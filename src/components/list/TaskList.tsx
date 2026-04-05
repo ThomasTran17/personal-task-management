@@ -269,19 +269,67 @@ export default function TaskList() {
   // Sort tasks by deadline
   const filteredAndSortedTasks = sortTasksByDeadline([...tasks]);
 
-  // Derived state for "Select All" logic
-  const isAllSelected = useMemo(() => {
-    return filteredAndSortedTasks.length > 0 && selectedIds.size === filteredAndSortedTasks.length;
-  }, [selectedIds.size, filteredAndSortedTasks.length]);
+  // Build parentToChildren mapping for O(1) lookup (View-Driven - only visible rows)
+  const parentToChildrenMap = useMemo(() => {
+    const mapping: Record<string, string[]> = {};
+    filteredAndSortedTasks.forEach((task) => {
+      const subtasks = subtasksMap[task.id] || [];
+      mapping[task.id] = subtasks.map((s) => s.id);
+    });
+    return mapping;
+  }, [filteredAndSortedTasks, subtasksMap]);
 
-  // Toggle select all
+  // Calculate total visible count: parents + all visible children
+  const totalVisibleCount = useMemo(() => {
+    const parentCount = filteredAndSortedTasks.length;
+    const childrenCount = Object.values(parentToChildrenMap).reduce(
+      (sum, children) => sum + children.length,
+      0
+    );
+    return parentCount + childrenCount;
+  }, [filteredAndSortedTasks, parentToChildrenMap]);
+
+  // Derived state: isAllSelected compares total visible count with selected count (Full-Tree)
+  const isAllSelected = useMemo(() => {
+    return totalVisibleCount > 0 && selectedIds.size === totalVisibleCount;
+  }, [selectedIds.size, totalVisibleCount]);
+
+  // Full-Tree Select All: Toggle ALL visible rows (Parents + Subtasks)
   const handleSelectAll = useCallback(() => {
-    if (isAllSelected) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filteredAndSortedTasks.map((task) => task.id)));
-    }
-  }, [isAllSelected, filteredAndSortedTasks, setSelectedIds]);
+    setSelectedIds((_prev) => {
+      if (isAllSelected) {
+        return new Set();
+      }
+
+      // Build set of all visible IDs: parents + all children
+      const next = new Set<string>();
+      filteredAndSortedTasks.forEach((task) => {
+        next.add(task.id);
+        (parentToChildrenMap[task.id] || []).forEach((childId) => next.add(childId));
+      });
+      return next;
+    });
+
+    // Sync selectedSubtaskIds: Set all visible children to selected
+    setSelectedSubtaskIds((prev) => {
+      if (isAllSelected) {
+        return {};
+      }
+
+      const next: Record<string, Set<string>> = { ...prev };
+      filteredAndSortedTasks.forEach((task) => {
+        const visibleChildren = parentToChildrenMap[task.id] || [];
+        next[task.id] = new Set(visibleChildren);
+      });
+      return next;
+    });
+  }, [
+    isAllSelected,
+    filteredAndSortedTasks,
+    parentToChildrenMap,
+    setSelectedIds,
+    setSelectedSubtaskIds,
+  ]);
 
   // Clear selection
   const handleClearSelection = useCallback(() => {
@@ -355,61 +403,41 @@ export default function TaskList() {
     [setSubtasksMap]
   );
 
-  // Build parentToChildren mapping for O(1) lookup
-  const parentToChildren = useMemo(() => {
-    const mapping: Record<string, string[]> = {};
-    filteredAndSortedTasks.forEach((task) => {
-      const subtasks = subtasksMap[task.id] || [];
-      mapping[task.id] = subtasks.map((s) => s.id);
-    });
-    return mapping;
-  }, [filteredAndSortedTasks, subtasksMap]);
-
   // Get selected subtask IDs for a parent
   const getSelectedSubtasks = (parentId: string): Set<string> => {
     return selectedSubtaskIds[parentId] || new Set();
   };
 
-  // TOP-DOWN SYNC: When parent is toggled, sync all children
+  // TOP-DOWN SYNC: Parent toggle syncs all visible children (View-Driven)
+  // Pattern: Functional update + Accurate dependencies (NO selectedIds)
   const handleParentSelectionChange = useCallback(
     (taskId: string, isChecking: boolean) => {
-      const childrenIds = parentToChildren[taskId] || [];
+      const visibleChildren = parentToChildrenMap[taskId] || [];
 
       setSelectedIds((prev) => {
-        const newSet = new Set(prev);
-
+        const next = new Set(prev);
         if (isChecking) {
-          // Add parent + all children
-          newSet.add(taskId);
-          childrenIds.forEach((childId) => newSet.add(childId));
+          // Add parent + all visible children
+          next.add(taskId);
+          visibleChildren.forEach((id) => next.add(id));
         } else {
-          // Remove parent + all children
-          newSet.delete(taskId);
-          childrenIds.forEach((childId) => newSet.delete(childId));
+          // Remove parent + all visible children
+          next.delete(taskId);
+          visibleChildren.forEach((id) => next.delete(id));
         }
-
-        return newSet;
+        return next;
       });
 
       // Override child selection state to match parent
-      setSelectedSubtaskIds((prev) => {
-        if (isChecking) {
-          return {
-            ...prev,
-            [taskId]: new Set(childrenIds),
-          };
-        } else {
-          return {
-            ...prev,
-            [taskId]: new Set(),
-          };
-        }
-      });
+      setSelectedSubtaskIds((prev) => ({
+        ...prev,
+        [taskId]: isChecking ? new Set(visibleChildren) : new Set(),
+      }));
     },
-    [parentToChildren, setSelectedIds, setSelectedSubtaskIds]
+    [parentToChildrenMap, setSelectedIds, setSelectedSubtaskIds]
   );
 
-  // INDEPENDENT: Child toggle does NOT affect parent
+  // INDEPENDENT: Child toggle does NOT affect parent (No Bottom-Up sync)
   const handleSubtaskToggle = useCallback(
     (parentId: string, subtaskId: string) => {
       setSelectedSubtaskIds((prev) => {
@@ -419,7 +447,6 @@ export default function TaskList() {
         } else {
           parentSubtasks.add(subtaskId);
         }
-
         return {
           ...prev,
           [parentId]: parentSubtasks,
@@ -428,48 +455,44 @@ export default function TaskList() {
 
       // Add/remove from global selectedIds
       setSelectedIds((prev) => {
-        const newSet = new Set(prev);
-        if (newSet.has(subtaskId)) {
-          newSet.delete(subtaskId);
+        const next = new Set(prev);
+        if (next.has(subtaskId)) {
+          next.delete(subtaskId);
         } else {
-          newSet.add(subtaskId);
+          next.add(subtaskId);
         }
-        return newSet;
+        return next;
       });
     },
     [setSelectedSubtaskIds, setSelectedIds]
   );
 
-  // Select/Deselect all subtasks under parent (header checkbox)
+  // Select/Deselect all visible subtasks under parent (header checkbox, View-Driven)
   const handleSelectAllSubtasks = useCallback(
     (parentId: string, subtasks: Subtask[]) => {
+      const subtaskIds = subtasks.map((s) => s.id);
+
       setSelectedSubtaskIds((prev) => {
         const parentSubtasks = new Set(prev[parentId] || []);
         const isAllSelected = subtasks.length > 0 && parentSubtasks.size === subtasks.length;
-
         return {
           ...prev,
-          [parentId]: isAllSelected ? new Set() : new Set(subtasks.map((s) => s.id)),
+          [parentId]: isAllSelected ? new Set() : new Set(subtaskIds),
         };
       });
 
       // Sync to global selectedIds
       setSelectedIds((prev) => {
-        const newSet = new Set(prev);
-        const subtaskIds = subtasks.map((s) => s.id);
-        const currentSubtaskSelection = new Set(subtaskIds.filter((id) => newSet.has(id)));
-        const isAllSelected =
-          subtasks.length > 0 && currentSubtaskSelection.size === subtasks.length;
+        const next = new Set(prev);
+        const currentSelection = new Set(subtaskIds.filter((id) => next.has(id)));
+        const isAllSelected = subtasks.length > 0 && currentSelection.size === subtasks.length;
 
         if (isAllSelected) {
-          // Remove all
-          subtaskIds.forEach((id) => newSet.delete(id));
+          subtaskIds.forEach((id) => next.delete(id));
         } else {
-          // Add all
-          subtaskIds.forEach((id) => newSet.add(id));
+          subtaskIds.forEach((id) => next.add(id));
         }
-
-        return newSet;
+        return next;
       });
     },
     [setSelectedSubtaskIds, setSelectedIds]
