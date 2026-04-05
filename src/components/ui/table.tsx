@@ -3,7 +3,7 @@ import { cn } from '@/lib';
 
 // Shared Tailwind class patterns (DRY - reused across multiple components)
 const TABLE_BASE_CLASSES =
-  'w-full caption-bottom text-sm table-fixed border-separate border-spacing-0 border-0';
+  'w-full min-w-[1152px] caption-bottom text-sm table-fixed border-separate border-spacing-0 border-0';
 const TABLE_HEADER_BORDER_CLASSES = 'border-b-1 border-l-1 border-table-border';
 const TABLE_ROW_BORDER_CLASSES = 'border-t-1 border-table-border';
 const CELL_BASE_CLASSES =
