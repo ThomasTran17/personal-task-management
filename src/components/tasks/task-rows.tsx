@@ -16,6 +16,8 @@ interface SubtaskRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
   isSingleSubtask?: boolean; // New prop to handle single subtask case
   status?: TaskStatus;
   parentStatus?: TaskStatus;
+  isSelected?: boolean;
+  onSelectionChange?: () => void;
 }
 
 function SubtaskTableRowComponent({
@@ -24,6 +26,8 @@ function SubtaskTableRowComponent({
   isSingleSubtask = false,
   status,
   parentStatus,
+  isSelected = false,
+  onSelectionChange,
   children,
   ...props
 }: SubtaskRowProps) {
@@ -47,6 +51,15 @@ function SubtaskTableRowComponent({
             )}
           />
         )}
+      </td>
+
+      {/* NEW Checkbox TD - After Indent, before Content */}
+      <td className="w-[5%] ps-0 text-center border-r-1 border-t-1 border-table-border">
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={onSelectionChange}
+          aria-label="Select subtask"
+        />
       </td>
 
       {children}
@@ -156,6 +169,7 @@ export const ExpandableTaskRow = React.memo(ExpandableTaskRowComponent);
 // Styling: text-xs + text-foreground/60 creates visual hierarchy differentiation from parent
 interface SubtaskTableHeaderProps extends React.HTMLAttributes<HTMLTableSectionElement> {
   parentStatus?: TaskStatus;
+  hasCheckbox?: boolean;
 }
 
 function SubtaskTableHeaderComponent({

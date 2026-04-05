@@ -157,10 +157,22 @@ const MOCK_TASKS: Task[] = [
 interface SubtaskListProps {
   subtasks: Subtask[];
   parentTaskStatus: TaskStatus;
+  _parentTaskId: string;
   onAddSubtask: (title: string) => void;
+  selectedSubtaskIds: Set<string>;
+  onSubtaskToggle: (subtaskId: string) => void;
+  onSelectAllSubtasks: () => void;
 }
 
-function SubtaskList({ subtasks, parentTaskStatus, onAddSubtask }: SubtaskListProps) {
+function SubtaskList({
+  subtasks,
+  parentTaskStatus,
+  _parentTaskId,
+  onAddSubtask,
+  selectedSubtaskIds,
+  onSubtaskToggle,
+  onSelectAllSubtasks,
+}: SubtaskListProps) {
   const midIndex = (subtasks.length - 1) >> 1;
   const isSingleSubtask = subtasks.length === 1;
 
@@ -178,7 +190,15 @@ function SubtaskList({ subtasks, parentTaskStatus, onAddSubtask }: SubtaskListPr
                 'w-[3%]'
               )}
             />
-            <TableHead className="w-[37%]">Title</TableHead>
+            {/* NEW Checkbox column header */}
+            <TableHead className="w-[5%] ps-0 text-center">
+              <Checkbox
+                checked={selectedSubtaskIds.size === subtasks.length && subtasks.length > 0}
+                onCheckedChange={onSelectAllSubtasks}
+                aria-label="Select all subtasks"
+              />
+            </TableHead>
+            <TableHead className="w-[32%]">Title</TableHead>
             <TableHead className="w-[20%]">Description</TableHead>
             <TableHead className="w-[15%]">Status</TableHead>
             <TableHead className="w-[15%]">Priority</TableHead>
@@ -193,6 +213,8 @@ function SubtaskList({ subtasks, parentTaskStatus, onAddSubtask }: SubtaskListPr
               parentStatus={parentTaskStatus}
               hasConnector={index === midIndex}
               isSingleSubtask={isSingleSubtask}
+              isSelected={selectedSubtaskIds.has(subtask.id)}
+              onSelectionChange={() => onSubtaskToggle(subtask.id)}
             >
               <TableCell className="text-sm">{subtask.title}</TableCell>
               <TableCell>
@@ -236,6 +258,11 @@ export default function TaskList() {
   const [subtasksMap, setSubtasksMap] = useState<Record<string, Subtask[]>>(MOCK_SUBTASKS_MAP);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+  // Subtask selection state: parentId -> Set of selected subtask IDs
+  const [selectedSubtaskIds, setSelectedSubtaskIds] = useState<Record<string, Set<string>>>({});
+  // Parent selection state for bulk actions (parentId -> isSelected)
+  const [_parentSelected, _setParentSelected] = useState<Set<string>>(new Set());
+
   // Use mock data if API data is empty, otherwise use API data
   const tasks = tasksFromApi.length > 0 ? tasksFromApi : MOCK_TASKS;
 
@@ -246,22 +273,6 @@ export default function TaskList() {
   const isAllSelected = useMemo(() => {
     return filteredAndSortedTasks.length > 0 && selectedIds.size === filteredAndSortedTasks.length;
   }, [selectedIds.size, filteredAndSortedTasks.length]);
-
-  // Toggle single row selection
-  const handleRowToggle = useCallback(
-    (taskId: string) => {
-      setSelectedIds((prev) => {
-        const newSet = new Set(prev);
-        if (newSet.has(taskId)) {
-          newSet.delete(taskId);
-        } else {
-          newSet.add(taskId);
-        }
-        return newSet;
-      });
-    },
-    [setSelectedIds]
-  );
 
   // Toggle select all
   const handleSelectAll = useCallback(() => {
@@ -344,6 +355,126 @@ export default function TaskList() {
     [setSubtasksMap]
   );
 
+  // Build parentToChildren mapping for O(1) lookup
+  const parentToChildren = useMemo(() => {
+    const mapping: Record<string, string[]> = {};
+    filteredAndSortedTasks.forEach((task) => {
+      const subtasks = subtasksMap[task.id] || [];
+      mapping[task.id] = subtasks.map((s) => s.id);
+    });
+    return mapping;
+  }, [filteredAndSortedTasks, subtasksMap]);
+
+  // Get selected subtask IDs for a parent
+  const getSelectedSubtasks = (parentId: string): Set<string> => {
+    return selectedSubtaskIds[parentId] || new Set();
+  };
+
+  // TOP-DOWN SYNC: When parent is toggled, sync all children
+  const handleParentSelectionChange = useCallback(
+    (taskId: string, isChecking: boolean) => {
+      const childrenIds = parentToChildren[taskId] || [];
+
+      setSelectedIds((prev) => {
+        const newSet = new Set(prev);
+
+        if (isChecking) {
+          // Add parent + all children
+          newSet.add(taskId);
+          childrenIds.forEach((childId) => newSet.add(childId));
+        } else {
+          // Remove parent + all children
+          newSet.delete(taskId);
+          childrenIds.forEach((childId) => newSet.delete(childId));
+        }
+
+        return newSet;
+      });
+
+      // Override child selection state to match parent
+      setSelectedSubtaskIds((prev) => {
+        if (isChecking) {
+          return {
+            ...prev,
+            [taskId]: new Set(childrenIds),
+          };
+        } else {
+          return {
+            ...prev,
+            [taskId]: new Set(),
+          };
+        }
+      });
+    },
+    [parentToChildren, setSelectedIds, setSelectedSubtaskIds]
+  );
+
+  // INDEPENDENT: Child toggle does NOT affect parent
+  const handleSubtaskToggle = useCallback(
+    (parentId: string, subtaskId: string) => {
+      setSelectedSubtaskIds((prev) => {
+        const parentSubtasks = new Set(prev[parentId] || []);
+        if (parentSubtasks.has(subtaskId)) {
+          parentSubtasks.delete(subtaskId);
+        } else {
+          parentSubtasks.add(subtaskId);
+        }
+
+        return {
+          ...prev,
+          [parentId]: parentSubtasks,
+        };
+      });
+
+      // Add/remove from global selectedIds
+      setSelectedIds((prev) => {
+        const newSet = new Set(prev);
+        if (newSet.has(subtaskId)) {
+          newSet.delete(subtaskId);
+        } else {
+          newSet.add(subtaskId);
+        }
+        return newSet;
+      });
+    },
+    [setSelectedSubtaskIds, setSelectedIds]
+  );
+
+  // Select/Deselect all subtasks under parent (header checkbox)
+  const handleSelectAllSubtasks = useCallback(
+    (parentId: string, subtasks: Subtask[]) => {
+      setSelectedSubtaskIds((prev) => {
+        const parentSubtasks = new Set(prev[parentId] || []);
+        const isAllSelected = subtasks.length > 0 && parentSubtasks.size === subtasks.length;
+
+        return {
+          ...prev,
+          [parentId]: isAllSelected ? new Set() : new Set(subtasks.map((s) => s.id)),
+        };
+      });
+
+      // Sync to global selectedIds
+      setSelectedIds((prev) => {
+        const newSet = new Set(prev);
+        const subtaskIds = subtasks.map((s) => s.id);
+        const currentSubtaskSelection = new Set(subtaskIds.filter((id) => newSet.has(id)));
+        const isAllSelected =
+          subtasks.length > 0 && currentSubtaskSelection.size === subtasks.length;
+
+        if (isAllSelected) {
+          // Remove all
+          subtaskIds.forEach((id) => newSet.delete(id));
+        } else {
+          // Add all
+          subtaskIds.forEach((id) => newSet.add(id));
+        }
+
+        return newSet;
+      });
+    },
+    [setSelectedSubtaskIds, setSelectedIds]
+  );
+
   return (
     <div className="w-full min-h-screen bg-background pb-24 lg:pb-6">
       <div className="max-w-6xl mx-auto">
@@ -388,7 +519,10 @@ export default function TaskList() {
                         onToggleSubtasks={() => toggleExpanded(task.id)}
                         status={task.status}
                         isSelected={selectedIds.has(task.id)}
-                        onSelectionChange={() => handleRowToggle(task.id)}
+                        onSelectionChange={() => {
+                          const isCurrentlySelected = selectedIds.has(task.id);
+                          handleParentSelectionChange(task.id, !isCurrentlySelected);
+                        }}
                         titleContent={
                           <span className="font-semibold text-gray-900">{task.title}</span>
                         }
@@ -433,7 +567,13 @@ export default function TaskList() {
                             <SubtaskList
                               subtasks={subtasks}
                               parentTaskStatus={task.status}
+                              _parentTaskId={task.id}
                               onAddSubtask={(title) => handleAddSubtask(task.id, title)}
+                              selectedSubtaskIds={getSelectedSubtasks(task.id)}
+                              onSubtaskToggle={(subtaskId) =>
+                                handleSubtaskToggle(task.id, subtaskId)
+                              }
+                              onSelectAllSubtasks={() => handleSelectAllSubtasks(task.id, subtasks)}
                             />
                           </TableCell>
                         </TableRow>
