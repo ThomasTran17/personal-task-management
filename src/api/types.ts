@@ -219,14 +219,17 @@ export interface RequestPasswordResetRequest {
  * Task attributes (from JSON:API resource attributes)
  */
 export interface TaskAttributes {
-  readonly userId: string;
+  readonly ownerId: string;
   readonly title: string;
   readonly description?: string;
   readonly status: 'TODO' | 'IN_PROGRESS' | 'DONE';
   readonly priority: 'LOW' | 'MEDIUM' | 'HIGH';
-  readonly dueDate?: Date;
-  readonly createdAt: Date;
-  readonly updatedAt: Date;
+  readonly participantIds?: readonly string[];
+  readonly dueDate?: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly parentId?: string | null;
+  readonly subtasks?: readonly TaskAttributes[];
 }
 
 /**

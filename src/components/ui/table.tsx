@@ -3,7 +3,7 @@ import { cn } from '@/lib';
 
 // Shared Tailwind class patterns (DRY - reused across multiple components)
 const TABLE_BASE_CLASSES =
-  'w-full caption-bottom text-sm table-fixed border-separate border-spacing-0 border-0';
+  'w-full min-w-[1004px] caption-bottom text-sm table-fixed border-separate border-spacing-0 border-0';
 const TABLE_HEADER_BORDER_CLASSES = 'border-b-1 border-l-1 border-table-border';
 const TABLE_ROW_BORDER_CLASSES = 'border-t-1 border-table-border';
 const CELL_BASE_CLASSES =
@@ -13,7 +13,7 @@ const CELL_CHECKBOX_ADJUSTMENT = '[&:has([role=checkbox])]:pe-0';
 // Main Table Component - Inherits Neubrutalism tokens from index.css
 export function Table({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="w-full overflow-auto">
+    <div className="w-full ">
       <table className={cn(TABLE_BASE_CLASSES, className)} {...props} />
     </div>
   );
@@ -26,11 +26,7 @@ export function TableHeader({
 }: React.HTMLAttributes<HTMLTableSectionElement>) {
   return (
     <thead
-      className={cn(
-        'text-main-foreground sticky top-0 z-10',
-        TABLE_HEADER_BORDER_CLASSES,
-        className
-      )}
+      className={cn('text-main-foreground top-0 z-10', TABLE_HEADER_BORDER_CLASSES, className)}
       {...props}
     />
   );

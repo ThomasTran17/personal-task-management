@@ -27,7 +27,7 @@ const INITIAL_FORM_STATE = {
   description: '',
   status: 'TODO' as TaskStatus,
   priority: 'MEDIUM' as TaskPriority,
-  dueDate: null as Date | null,
+  dueDate: null as string | null,
 };
 
 const STATUS_OPTIONS = [
@@ -47,7 +47,7 @@ export default function AddTaskDialog({ isOpen, onOpenChange }: AddTaskDialogPro
   const [description, setDescription] = useState(INITIAL_FORM_STATE.description);
   const [status, setStatus] = useState(INITIAL_FORM_STATE.status);
   const [priority, setPriority] = useState(INITIAL_FORM_STATE.priority);
-  const [dueDate, setDueDate] = useState<Date | null>(INITIAL_FORM_STATE.dueDate);
+  const [dueDate, setDueDate] = useState<string | null>(INITIAL_FORM_STATE.dueDate);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [addTask] = useAddTaskMutation();
   const { errors, validateForm, clearErrors, validateField } = useFormValidation();
@@ -85,7 +85,7 @@ export default function AddTaskDialog({ isOpen, onOpenChange }: AddTaskDialogPro
           description: description.trim() || undefined,
           priority,
           status,
-          dueDate: dueDate ? dueDate.toISOString() : undefined,
+          dueDate: dueDate ?? undefined,
         }).unwrap();
 
         resetForm();

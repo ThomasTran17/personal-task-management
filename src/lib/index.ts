@@ -2,6 +2,7 @@
  * Utility Helpers Barrel Export
  */
 
+export * from './dateFormatHelpers';
 export * from './deadlineHelpers';
 export * from './deadlineNotificationProcessor';
 export * from './deadlineNotificationState';

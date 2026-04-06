@@ -16,9 +16,11 @@ export {
 
 export {
   resetApiState,
+  useAddSubtaskMutation,
   useAddTaskMutation,
   useDeleteAllTasksMutation,
   useDeleteTaskMutation,
+  useGetSubtasksQuery,
   useGetTaskByIdQuery,
   useGetTasksQuery,
   useUpdateTaskMutation,

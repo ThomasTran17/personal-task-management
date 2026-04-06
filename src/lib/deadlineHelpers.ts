@@ -4,11 +4,11 @@ export const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Calculate time remaining until deadline in milliseconds
- * @param dueDate - The deadline date
+ * @param dueDate - The deadline date (ISO string or Date object)
  * @param currentTime - Optional current timestamp (for consistency across calculations)
  * @returns Time remaining in milliseconds (negative if overdue)
  */
-export const getTimeUntilDeadline = (dueDate: Date, currentTime?: number): number => {
+export const getTimeUntilDeadline = (dueDate: string | Date, currentTime?: number): number => {
   const now = currentTime ?? new Date().getTime();
   return new Date(dueDate).getTime() - now;
 };
@@ -24,13 +24,13 @@ export interface DeadlineStatus {
 
 /**
  * Get deadline status based on due date and task status
- * @param dueDate - The deadline date
+ * @param dueDate - The deadline date (ISO string or Date object)
  * @param status - The task status
  * @param currentTime - Optional current timestamp (for consistency across calculations)
  * @returns Object with boolean flags for deadline states
  */
 export const getDeadlineStatus = (
-  dueDate: Date | undefined,
+  dueDate: string | Date | undefined,
   status: string,
   currentTime?: number
 ): DeadlineStatus => {
@@ -75,7 +75,7 @@ export const getDeadlineStatusClass = (
  * @param date - The date to format
  * @returns Formatted date string
  */
-export const formatDate = (date: Date): string => {
+export const formatDate = (date: string | Date): string => {
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
@@ -85,10 +85,10 @@ export const formatDate = (date: Date): string => {
 
 /**
  * Format date and time (e.g., "Mar 19, 2:30 PM")
- * @param date - The date to format
+ * @param date - The date to format (ISO string or Date object)
  * @returns Formatted date and time string
  */
-export const formatDateTime = (date: Date): string => {
+export const formatDateTime = (date: string | Date): string => {
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
@@ -116,7 +116,7 @@ export const getDeadlineStatusLabel = (isOverdue: boolean, isDueSoon: boolean): 
  * @param tasks - Array of tasks to sort
  * @returns Sorted array of tasks
  */
-export const sortTasksByDeadline = <T extends { dueDate?: Date; status?: string }>(
+export const sortTasksByDeadline = <T extends { dueDate?: string | Date; status?: string }>(
   tasks: T[]
 ): T[] => {
   return [...tasks].sort((a, b) => {

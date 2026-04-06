@@ -30,7 +30,7 @@ export const usePeriodicDeadlineCheck = () => {
     }
 
     const timeUntilMs = getTimeUntilDeadline(task.dueDate);
-    const dueDateString = task.dueDate.toISOString();
+    const dueDateString = task.dueDate;
 
     handleUrgentDeadlineNotification(task.id, task.title, dueDateString, timeUntilMs);
     handleReminderDeadlineNotification(task.id, task.title, timeUntilMs);

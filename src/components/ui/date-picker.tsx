@@ -6,8 +6,8 @@ import * as React from 'react';
 import { Button, Calendar, Input, Popover, PopoverContent, PopoverTrigger } from '@/components';
 
 interface DatePickerProps {
-  value?: Date | null;
-  onDateChange: (date: Date | null) => void;
+  value?: string | null;
+  onDateChange: (date: string | null) => void;
   placeholder?: string;
   className?: string;
   withTime?: boolean;
@@ -20,11 +20,12 @@ export default function DatePicker({
   className = 'w-full',
   withTime = false,
 }: DatePickerProps) {
+  const valueDate = value ? new Date(value) : null;
   const [hours, setHours] = React.useState<string>(
-    value ? String(value.getHours()).padStart(2, '0') : '09'
+    valueDate ? String(valueDate.getHours()).padStart(2, '0') : '09'
   );
   const [minutes, setMinutes] = React.useState<string>(
-    value ? String(value.getMinutes()).padStart(2, '0') : '00'
+    valueDate ? String(valueDate.getMinutes()).padStart(2, '0') : '00'
   );
 
   const handleDateSelect = (date: Date | undefined) => {
@@ -39,7 +40,7 @@ export default function DatePicker({
       date.setHours(hours_num, minutes_num, 0, 0);
     }
 
-    onDateChange(date);
+    onDateChange(date.toISOString());
   };
 
   const handleHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,12 +56,12 @@ export default function DatePicker({
 
     setHours(newHours);
 
-    if (value && withTime) {
+    if (valueDate && withTime) {
       const hours_num = parseInt(newHours) || 0;
       const minutes_num = parseInt(minutes) || 0;
-      const newDate = new Date(value);
+      const newDate = new Date(valueDate);
       newDate.setHours(hours_num, minutes_num, 0, 0);
-      onDateChange(newDate);
+      onDateChange(newDate.toISOString());
     }
   };
 
@@ -77,12 +78,12 @@ export default function DatePicker({
 
     setMinutes(newMinutes);
 
-    if (value && withTime) {
+    if (valueDate && withTime) {
       const hours_num = parseInt(hours) || 0;
       const minutes_num = parseInt(newMinutes) || 0;
-      const newDate = new Date(value);
+      const newDate = new Date(valueDate);
       newDate.setHours(hours_num, minutes_num, 0, 0);
-      onDateChange(newDate);
+      onDateChange(newDate.toISOString());
     }
   };
 
@@ -91,8 +92,8 @@ export default function DatePicker({
       <PopoverTrigger asChild>
         <Button variant="noShadow" className={`justify-start text-left font-base ${className}`}>
           <CalendarIcon className="size-4 mr-2" />
-          {value ? (
-            format(value, withTime ? 'MMM dd, yyyy HH:mm' : 'MMM dd, yyyy')
+          {valueDate ? (
+            format(valueDate, withTime ? 'MMM dd, yyyy HH:mm' : 'MMM dd, yyyy')
           ) : (
             <span>{placeholder}</span>
           )}
@@ -102,12 +103,12 @@ export default function DatePicker({
         <div className="space-y-4">
           <Calendar
             mode="single"
-            selected={value ?? undefined}
+            selected={valueDate ?? undefined}
             onSelect={handleDateSelect}
             initialFocus
           />
 
-          {withTime && value && (
+          {withTime && valueDate && (
             <div className="flex items-center gap-2 pt-4 border-t border-border">
               <Clock className="size-4 text-foreground/60" />
               <Input

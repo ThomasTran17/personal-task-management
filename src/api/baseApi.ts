@@ -11,8 +11,8 @@ import { config } from '@/config';
 /**
  * Configure base query with Bearer token injection
  */
-const baseUrl = config.apiUrl;
-const timeout = config.apiTimeout;
+const baseUrl = config.API_BASE_URL;
+const timeout = config.API_TIMEOUT;
 
 const baseQuery = fetchBaseQuery({
   baseUrl,

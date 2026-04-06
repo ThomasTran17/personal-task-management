@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib';
 import { useTaskInput } from '@/hooks/use-task-input';
 import { TableCell } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import type { TaskStatus } from '@/types/task';
 import { getStatusColor } from './task-status-colors';
 
@@ -15,6 +16,8 @@ interface SubtaskRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
   isSingleSubtask?: boolean; // New prop to handle single subtask case
   status?: TaskStatus;
   parentStatus?: TaskStatus;
+  isSelected?: boolean;
+  onSelectionChange?: () => void;
 }
 
 function SubtaskTableRowComponent({
@@ -23,6 +26,8 @@ function SubtaskTableRowComponent({
   isSingleSubtask = false,
   status,
   parentStatus,
+  isSelected = false,
+  onSelectionChange,
   children,
   ...props
 }: SubtaskRowProps) {
@@ -33,7 +38,7 @@ function SubtaskTableRowComponent({
     >
       <td
         className={cn(
-          'align-middle truncate max-w-0 border-r-3 relative',
+          'align-middle truncate max-w-0 border-r-5 relative',
           getStatusColor(status).borderRight
         )}
       >
@@ -48,6 +53,15 @@ function SubtaskTableRowComponent({
         )}
       </td>
 
+      {/* NEW Checkbox TD - After Indent, before Content */}
+      <td className="w-[5%] ps-0 text-center border-r-1 border-t-1 border-table-border">
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={onSelectionChange}
+          aria-label="Select subtask"
+        />
+      </td>
+
       {children}
     </tr>
   );
@@ -59,9 +73,7 @@ export const SubtaskTableRow = React.memo(SubtaskTableRowComponent);
 // CONNECTOR IMPLEMENTATION: Vertical stem of L-shape
 // The before:absolute pseudo-element creates the vertical line connecting
 // parent task to all subtasks in this container
-interface SubtaskContainerProps extends React.HTMLAttributes<HTMLDivElement> {
-  parentStatus?: TaskStatus;
-}
+type SubtaskContainerProps = React.HTMLAttributes<HTMLDivElement>;
 
 function SubtaskContainerComponent({ className, children, ...props }: SubtaskContainerProps) {
   return (
@@ -81,7 +93,11 @@ interface ExpandableTaskRowProps extends React.HTMLAttributes<HTMLTableRowElemen
   hasSubtasks?: boolean;
   isExpanded?: boolean;
   onToggleSubtasks?: (expanded: boolean) => void;
+  onAddSubtask?: () => void;
   status?: TaskStatus;
+  // Bulk Selection
+  isSelected?: boolean;
+  onSelectionChange?: () => void;
   // Slot Pattern - Explicit named slots for type-safety
   titleContent: React.ReactNode;
   actionContent?: React.ReactNode;
@@ -92,7 +108,10 @@ function ExpandableTaskRowComponent({
   hasSubtasks = false,
   isExpanded = false,
   onToggleSubtasks,
+  onAddSubtask,
   status,
+  isSelected = false,
+  onSelectionChange,
   titleContent,
   actionContent,
   ...props
@@ -105,21 +124,48 @@ function ExpandableTaskRowComponent({
       )}
       {...props}
     >
-      {/* Title cell with expand button */}
-      <TableCell className={cn(getStatusColor(status).borderLeft, 'first:border-l-3')}>
-        <div className="flex items-center gap-2">
-          {hasSubtasks && (
-            <button
-              onClick={() => onToggleSubtasks?.(!isExpanded)}
-              className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-transform"
-              style={{
-                transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
-              }}
-            >
-              <ChevronDown className="size-4" />
-            </button>
+      {/* Checkbox cell - sticky for easy selection */}
+      <TableCell className="ps-0 text-center">
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={onSelectionChange}
+          aria-label="Select task"
+        />
+      </TableCell>
+
+      {/* Title cell with expand button and add subtask button */}
+      <TableCell className={cn(getStatusColor(status).borderLeft)}>
+        <div
+          className={cn(
+            getStatusColor(status).background,
+            'absolute -left-[5px] top-0 bottom-0 w-[5px] h-[41px]'
           )}
-          {titleContent}
+        />
+        <div className="flex items-center gap-2 justify-between">
+          <div className="flex items-center gap-2">
+            {hasSubtasks && (
+              <button
+                onClick={() => onToggleSubtasks?.(!isExpanded)}
+                className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-transform"
+                style={{
+                  transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                }}
+              >
+                <ChevronDown className="size-4" />
+              </button>
+            )}
+            {titleContent}
+          </div>
+
+          {/* Add Subtask Button - Always visible */}
+          <button
+            onClick={onAddSubtask}
+            className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-colors ml-auto"
+            title="Add subtask"
+            aria-label="Add subtask"
+          >
+            <span className="text-lg font-light leading-none">+</span>
+          </button>
         </div>
       </TableCell>
       {/* Action cells slot */}
@@ -135,6 +181,7 @@ export const ExpandableTaskRow = React.memo(ExpandableTaskRowComponent);
 // Styling: text-xs + text-foreground/60 creates visual hierarchy differentiation from parent
 interface SubtaskTableHeaderProps extends React.HTMLAttributes<HTMLTableSectionElement> {
   parentStatus?: TaskStatus;
+  hasCheckbox?: boolean;
 }
 
 function SubtaskTableHeaderComponent({
@@ -147,10 +194,9 @@ function SubtaskTableHeaderComponent({
     <thead
       className={cn(
         'border border-border',
-        'border-l-3 border-r-0',
+        'border-l-1 border-r-0',
         getStatusColor(parentStatus).borderLeft,
         'text-xs text-foreground/60',
-        'sticky top-0 z-9',
         className
       )}
       {...props}
@@ -169,6 +215,7 @@ interface AddTaskRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
   onAddClick?: () => void;
   onAddTask?: (title: string) => void;
   parentStatus?: TaskStatus;
+  status?: TaskStatus;
 }
 
 function AddTaskRowComponent({
@@ -176,6 +223,7 @@ function AddTaskRowComponent({
   onAddClick,
   onAddTask,
   parentStatus,
+  status,
   children,
   ...props
 }: AddTaskRowProps) {
@@ -192,7 +240,7 @@ function AddTaskRowComponent({
   return (
     <tr
       className={cn(
-        'border-b-2 border-border border-s-3 transition-all hover:bg-main/10',
+        'border-b-2 border-border border-s-3 transition-all hover:bg-main/10 relative',
         getStatusColor(parentStatus).borderLeft,
         className
       )}
@@ -201,11 +249,12 @@ function AddTaskRowComponent({
       {parentStatus && (
         <td
           className={cn(
-            'ps-4 pe-4 py-2 align-middle truncate max-w-0 border-r-3',
+            'ps-4 pe-4 py-2 align-middle truncate max-w-0 border-r-5',
             getStatusColor(parentStatus).borderRight
           )}
         />
       )}
+
       <TableCell colSpan={6} className="ps-0 pe-0 border-b-1">
         {isEditing ? (
           <input
@@ -228,6 +277,14 @@ function AddTaskRowComponent({
           >
             {children ?? '+ Add task'}
           </div>
+        )}
+        {status && (
+          <div
+            className={cn(
+              getStatusColor(status).background,
+              'absolute -left-[5px] top-0 bottom-0 w-[5px] h-[45px]'
+            )}
+          />
         )}
       </TableCell>
     </tr>

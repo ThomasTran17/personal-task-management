@@ -40,7 +40,7 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>('TODO');
   const [priority, setPriority] = useState<TaskPriority>('MEDIUM');
-  const [dueDate, setDueDate] = useState<Date | null>(null);
+  const [dueDate, setDueDate] = useState<string | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [updateTask] = useUpdateTaskMutation();
   const { errors, validateForm, clearErrors, validateField } = useFormValidation();
@@ -97,7 +97,7 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
             description: description.trim() || undefined,
             status,
             priority,
-            dueDate: dueDate ? dueDate.toISOString() : undefined,
+            dueDate: dueDate ?? undefined,
           },
         }).unwrap();
 
