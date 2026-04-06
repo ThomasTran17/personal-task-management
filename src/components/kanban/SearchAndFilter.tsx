@@ -57,7 +57,7 @@ export default function SearchAndFilter({
   }, [onSearch, onFilterStatus, onFilterPriority]);
 
   return (
-    <div className="mb-8 space-y-4">
+    <div className="mb-8 space-y-4 w-full">
       {/* Search Bar and Filters Toggle Row - Mobile */}
       <div className="flex items-center gap-4 lg:hidden">
         {/* Search Bar */}

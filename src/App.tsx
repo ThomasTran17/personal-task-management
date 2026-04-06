@@ -1,17 +1,12 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Sidebar, BottomNav, Toaster } from '@/components';
-import { LoginPage, ListPage, StatisticsPage, RegisterPage, TestPage } from '@/pages';
+import { LoginPage, ListPage, StatisticsPage, RegisterPage } from '@/pages';
 import { usePeriodicDeadlineCheck } from '@/hooks';
 
 const navItems = [
   {
     href: '/',
     label: 'List',
-    iconType: 'kanban' as const,
-  },
-  {
-    href: '/test',
-    label: 'Test',
     iconType: 'kanban' as const,
   },
   {
@@ -38,7 +33,6 @@ export default function App() {
               <main className="flex-1 overflow-auto pb-24 lg:pb-0">
                 <Routes>
                   <Route path="/" element={<ListPage />} />
-                  <Route path="/test" element={<TestPage />} />
                   <Route path="/statistics" element={<StatisticsPage />} />
                 </Routes>
               </main>

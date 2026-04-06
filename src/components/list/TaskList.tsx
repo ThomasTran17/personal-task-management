@@ -1,7 +1,9 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { useGetTasksQuery, useAddTaskMutation, useAddSubtaskMutation } from '@/api';
+import { useAddTaskMutation, useAddSubtaskMutation } from '@/api';
 import type { TaskPriority, TaskStatus } from '@/types';
 import type { Task } from '@/types/task';
+import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
+import type { SerializedError } from '@reduxjs/toolkit';
 import { cn, sortTasksByDeadline, formatDateToLocale } from '@/lib';
 import {
   Table,
@@ -22,6 +24,16 @@ import {
   BulkActions,
 } from '@/components/tasks';
 import { getStatusColor as getBorderColor } from '@/components/tasks/task-status-colors';
+
+interface TaskListProps {
+  tasks: readonly Task[];
+  isLoading?: boolean;
+  error?: FetchBaseQueryError | SerializedError;
+  searchQuery: string;
+  filterStatus: TaskStatus | 'all';
+  filterPriority: TaskPriority | 'all';
+  onFilterStatusChange?: (status: TaskStatus | 'all') => void;
+}
 
 // Configuration mapping for status labels and colors
 const STATUS_CONFIG = {
@@ -181,24 +193,37 @@ function SubtaskList({
   );
 }
 
-export default function TaskList() {
-  const { data: tasksFromApi = [], isLoading, error } = useGetTasksQuery();
+export default function TaskList({
+  tasks,
+  isLoading = false,
+  error,
+  searchQuery,
+  filterStatus,
+  filterPriority,
+}: TaskListProps) {
   const [addTask] = useAddTaskMutation();
   const [addSubtask] = useAddSubtaskMutation();
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  // Use API data directly from tasks, which are already fetched
-  const tasks = tasksFromApi;
+  // Filter tasks based on search query, status, and priority
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = filterStatus === 'all' || task.status === filterStatus;
+      const matchesPriority = filterPriority === 'all' || task.priority === filterPriority;
+      return matchesSearch && matchesStatus && matchesPriority;
+    });
+  }, [tasks, searchQuery, filterStatus, filterPriority]);
 
   // Sort tasks by deadline
-  const filteredAndSortedTasks = sortTasksByDeadline([...tasks]);
+  const filteredAndSortedTasks = sortTasksByDeadline([...filteredTasks]);
 
   // Build parentToChildren mapping from nested subtasks
   const parentToChildrenMap = useMemo(() => {
     const mapping: Record<string, string[]> = {};
     filteredAndSortedTasks.forEach((task) => {
-      mapping[task.id] = task.subtasks?.map((st) => st.id) ?? [];
+      mapping[task.id] = task.subtasks?.map((st: Task) => st.id) ?? [];
     });
     return mapping;
   }, [filteredAndSortedTasks]);
@@ -402,10 +427,8 @@ export default function TaskList() {
   }, [tasks]);
 
   return (
-    <div className="w-full min-h-screen bg-background pb-24 lg:pb-6">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Task List</h1>
-
+    <div className="w-full min-h-screen bg-background pb-24">
+      <div className="max-w-7xl mx-auto">
         {/* Loading State */}
         {isLoading && (
           <div className="text-center py-12 bg-white rounded-lg border border-gray-200">

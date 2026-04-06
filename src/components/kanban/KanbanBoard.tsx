@@ -1,7 +1,10 @@
 import { useCallback, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger, KanbanColumn } from '@/components';
-import { useGetTasksQuery, useDeleteTaskMutation } from '@/api';
+import { useDeleteTaskMutation } from '@/api';
 import type { TaskStatus, TaskPriority } from '@/types';
+import type { Task } from '@/types/task';
+import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
+import type { SerializedError } from '@reduxjs/toolkit';
 import { sortTasksByDeadline } from '@/lib';
 import {
   usePeriodicDeadlineCheck,
@@ -11,6 +14,9 @@ import {
 } from '@/hooks';
 
 interface KanbanBoardProps {
+  tasks: readonly Task[];
+  _isLoading?: boolean;
+  _error?: FetchBaseQueryError | SerializedError;
   searchQuery: string;
   filterStatus: TaskStatus | 'all';
   filterPriority: TaskPriority | 'all';
@@ -24,13 +30,15 @@ const COLUMNS = [
 ] as const;
 
 export default function KanbanBoard({
+  tasks,
+  _isLoading = false,
+  _error,
   searchQuery,
   filterStatus,
   filterPriority,
   onFilterStatusChange,
 }: KanbanBoardProps) {
-  // RTK Query hooks for data fetching
-  const { data: tasks = [] } = useGetTasksQuery();
+  // RTK Query hooks for mutations
   const [deleteTask] = useDeleteTaskMutation();
 
   // Drag and drop hook
