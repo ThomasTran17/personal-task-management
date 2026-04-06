@@ -280,15 +280,15 @@ function AddTaskRowComponent({
             {children ?? '+ Add task'}
           </div>
         )}
+        {status && (
+          <div
+            className={cn(
+              getStatusColor(status).background,
+              'absolute -left-[5px] top-0 bottom-0 w-[5px] h-[45px]'
+            )}
+          />
+        )}
       </TableCell>
-      {status && (
-        <div
-          className={cn(
-            getStatusColor(status).background,
-            'absolute -left-[5px] top-0 bottom-0 w-[5px] h-[45px]'
-          )}
-        />
-      )}
     </tr>
   );
 }

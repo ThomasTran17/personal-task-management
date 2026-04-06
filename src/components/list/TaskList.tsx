@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useGetTasksQuery, useAddTaskMutation, useAddSubtaskMutation } from '@/api';
 import type { TaskPriority, TaskStatus } from '@/types';
 import type { Task } from '@/types/task';
@@ -459,7 +459,7 @@ export default function TaskList() {
                   const hasSubtasks = subtasksData.length > 0;
 
                   return (
-                    <>
+                    <React.Fragment key={task.id}>
                       {/* Parent Task Row - Neobrutalism with primary sidebar border */}
                       <ExpandableTaskRow
                         hasSubtasks={hasSubtasks}
@@ -529,7 +529,7 @@ export default function TaskList() {
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </React.Fragment>
                   );
                 })}
                 <AddTaskRow onAddTask={handleAddTask} status={getCurrentStatus()}>
