@@ -95,6 +95,7 @@ interface ExpandableTaskRowProps extends React.HTMLAttributes<HTMLTableRowElemen
   hasSubtasks?: boolean;
   isExpanded?: boolean;
   onToggleSubtasks?: (expanded: boolean) => void;
+  onAddSubtask?: () => void;
   status?: TaskStatus;
   // Bulk Selection
   isSelected?: boolean;
@@ -109,6 +110,7 @@ function ExpandableTaskRowComponent({
   hasSubtasks = false,
   isExpanded = false,
   onToggleSubtasks,
+  onAddSubtask,
   status,
   isSelected = false,
   onSelectionChange,
@@ -133,7 +135,7 @@ function ExpandableTaskRowComponent({
         />
       </TableCell>
 
-      {/* Title cell with expand button */}
+      {/* Title cell with expand button and add subtask button */}
       <TableCell className={cn(getStatusColor(status).borderLeft)}>
         <div
           className={cn(
@@ -141,19 +143,31 @@ function ExpandableTaskRowComponent({
             'absolute -left-[5px] top-0 bottom-0 w-[5px] h-[41px]'
           )}
         />
-        <div className="flex items-center gap-2">
-          {hasSubtasks && (
-            <button
-              onClick={() => onToggleSubtasks?.(!isExpanded)}
-              className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-transform"
-              style={{
-                transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
-              }}
-            >
-              <ChevronDown className="size-4" />
-            </button>
-          )}
-          {titleContent}
+        <div className="flex items-center gap-2 justify-between">
+          <div className="flex items-center gap-2">
+            {hasSubtasks && (
+              <button
+                onClick={() => onToggleSubtasks?.(!isExpanded)}
+                className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-transform"
+                style={{
+                  transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                }}
+              >
+                <ChevronDown className="size-4" />
+              </button>
+            )}
+            {titleContent}
+          </div>
+
+          {/* Add Subtask Button - Always visible */}
+          <button
+            onClick={onAddSubtask}
+            className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-colors ml-auto"
+            title="Add subtask"
+            aria-label="Add subtask"
+          >
+            <span className="text-lg font-light leading-none">+</span>
+          </button>
         </div>
       </TableCell>
       {/* Action cells slot */}

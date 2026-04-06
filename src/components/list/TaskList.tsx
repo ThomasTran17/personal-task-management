@@ -1,5 +1,10 @@
 import { useState, useCallback, useMemo } from 'react';
-import { useGetTasksQuery, useAddTaskMutation, useAddSubtaskMutation } from '@/api';
+import {
+  useGetTasksQuery,
+  useAddTaskMutation,
+  useAddSubtaskMutation,
+  useGetSubtasksQuery,
+} from '@/api';
 import type { TaskPriority, TaskStatus } from '@/types';
 import type { Task } from '@/types/task';
 import { cn, sortTasksByDeadline } from '@/lib';
@@ -88,6 +93,63 @@ const getPriorityLabel = (priority: TaskPriority, isShort = false): string => {
     : PRIORITY_CONFIG[priority]?.label || '';
 };
 
+// SubtaskListLoader - Fetches subtasks from API
+interface SubtaskListLoaderProps {
+  parentTaskId: string;
+  parentTaskStatus: TaskStatus;
+  onAddSubtask: (title: string) => void;
+  selectedIds: Set<string>;
+  onSubtaskToggle: (subtaskId: string) => void;
+  onSelectAllSubtasks: () => void;
+}
+
+function SubtaskListLoader({
+  parentTaskId,
+  parentTaskStatus,
+  onAddSubtask,
+  selectedIds,
+  onSubtaskToggle,
+  onSelectAllSubtasks,
+}: SubtaskListLoaderProps) {
+  const { data: subtasksFromApi = [], isLoading, error } = useGetSubtasksQuery(parentTaskId);
+
+  // Transform API response to Subtask[]
+  const subtasks: Subtask[] = subtasksFromApi.map((task: Task) => ({
+    id: task.id,
+    title: task.title,
+    status: task.status as TaskStatus,
+    priority: task.priority as TaskPriority,
+  }));
+
+  if (isLoading) {
+    return <div className="p-4 text-center text-gray-500">Loading subtasks...</div>;
+  }
+
+  if (error) {
+    return <div className="p-4 text-center text-red-500">Failed to load subtasks</div>;
+  }
+
+  if (subtasks.length === 0) {
+    return (
+      <SubtaskContainer parentStatus={parentTaskStatus}>
+        <div className="p-4 text-center text-gray-500">No subtasks</div>
+      </SubtaskContainer>
+    );
+  }
+
+  return (
+    <SubtaskList
+      subtasks={subtasks}
+      parentTaskStatus={parentTaskStatus}
+      _parentTaskId={parentTaskId}
+      onAddSubtask={onAddSubtask}
+      selectedIds={selectedIds}
+      onSubtaskToggle={onSubtaskToggle}
+      onSelectAllSubtasks={onSelectAllSubtasks}
+    />
+  );
+}
+
 // SubtaskList Component - Extracted logic for rendering subtasks
 interface SubtaskListProps {
   subtasks: Subtask[];
@@ -122,7 +184,7 @@ function SubtaskList({
                 'border-r-5 first:border-l-0 first:border-t-0',
                 'p-0',
                 getStatusBorderColors(parentTaskStatus).borderRight,
-                'w-[3%]'
+                'w-[5%]'
               )}
             />
             {/* NEW Checkbox column header */}
@@ -135,7 +197,7 @@ function SubtaskList({
                 aria-label="Select all subtasks"
               />
             </TableHead>
-            <TableHead className="w-[32%]">Title</TableHead>
+            <TableHead className="w-[31%]">Title</TableHead>
             <TableHead className="w-[20%]">Description</TableHead>
             <TableHead className="w-[15%]">Status</TableHead>
             <TableHead className="w-[15%]">Priority</TableHead>
@@ -194,7 +256,6 @@ export default function TaskList() {
   const [addTask] = useAddTaskMutation();
   const [addSubtask] = useAddSubtaskMutation();
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
-  const [subtasksMap] = useState<Record<string, Subtask[]>>({});
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Use API data directly from tasks, which are already fetched
@@ -203,15 +264,14 @@ export default function TaskList() {
   // Sort tasks by deadline
   const filteredAndSortedTasks = sortTasksByDeadline([...tasks]);
 
-  // Build parentToChildren mapping for O(1) lookup (View-Driven - only visible rows)
+  // Build parentToChildren mapping - for now, keep empty since we fetch on demand
   const parentToChildrenMap = useMemo(() => {
     const mapping: Record<string, string[]> = {};
     filteredAndSortedTasks.forEach((task) => {
-      const subtasks = subtasksMap[task.id] || [];
-      mapping[task.id] = subtasks.map((s) => s.id);
+      mapping[task.id] = [];
     });
     return mapping;
-  }, [filteredAndSortedTasks, subtasksMap]);
+  }, [filteredAndSortedTasks]);
 
   // Calculate total visible count: parents + all visible children
   const totalVisibleCount = useMemo(() => {
@@ -291,9 +351,9 @@ export default function TaskList() {
     [setExpandedTasks]
   );
 
-  // Get subtasks for a task ID
-  const getSubtasks = (taskId: string): Subtask[] => {
-    return subtasksMap[taskId] || [];
+  // Get subtasks for a task ID - subtasks are fetched dynamically via SubtaskListLoader
+  const getSubtasks = (_taskId: string): Subtask[] => {
+    return [];
   };
 
   // Handle adding a new subtask with API call
@@ -316,6 +376,15 @@ export default function TaskList() {
         });
     },
     [addSubtask]
+  );
+
+  // Handle opening subtask input
+
+  const handleOpenSubtaskInput = useCallback(
+    (parentTaskId: string) => {
+      setExpandedTasks((prev) => new Set(prev).add(parentTaskId));
+    },
+    [setExpandedTasks]
   );
 
   // Handle adding a new parent task
@@ -469,6 +538,7 @@ export default function TaskList() {
                         hasSubtasks={hasSubtasks}
                         isExpanded={isExpanded}
                         onToggleSubtasks={() => toggleExpanded(task.id)}
+                        onAddSubtask={() => handleOpenSubtaskInput(task.id)}
                         status={task.status}
                         isSelected={selectedIds.has(task.id)}
                         onSelectionChange={() => {
@@ -507,7 +577,7 @@ export default function TaskList() {
                       />
 
                       {/* Subtasks Container - L-shaped visual connectors */}
-                      {hasSubtasks && isExpanded && (
+                      {isExpanded && (
                         <TableRow className={'border-b-0 border-l-1 p-0'}>
                           <TableCell
                             colSpan={7}
@@ -516,16 +586,15 @@ export default function TaskList() {
                               getStatusBorderColors(task.status).borderLeft
                             )}
                           >
-                            <SubtaskList
-                              subtasks={subtasks}
+                            <SubtaskListLoader
+                              parentTaskId={task.id}
                               parentTaskStatus={task.status}
-                              _parentTaskId={task.id}
                               onAddSubtask={(title) => handleAddSubtask(task.id, title)}
                               selectedIds={selectedIds}
                               onSubtaskToggle={(subtaskId) =>
                                 handleSubtaskToggle(task.id, subtaskId)
                               }
-                              onSelectAllSubtasks={() => handleSelectAllSubtasks(task.id, subtasks)}
+                              onSelectAllSubtasks={() => handleSelectAllSubtasks(task.id, [])}
                             />
                           </TableCell>
                         </TableRow>
