@@ -246,6 +246,34 @@ export const authApi = baseApi.injectEndpoints({
         body: request,
       }),
     }),
+
+    /**
+     * Get all users in the system
+     * @query
+     */
+    getUsers: builder.query<readonly UserWithAttributes[], void>({
+      query: () => '/users',
+      transformResponse: (
+        response: JsonApiResponse<UserAttributes>
+      ): readonly UserWithAttributes[] => {
+        // Handle array of resources
+        if (!Array.isArray(response.data)) {
+          throw new Error('getUsers response should contain array of user resources');
+        }
+
+        return response.data.map((resource: JsonApiResource<UserAttributes>) => ({
+          id: resource.id,
+          ...resource.attributes,
+        }));
+      },
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: 'User' as const, id })),
+              { type: 'User' as const, id: 'LIST' },
+            ]
+          : [{ type: 'User' as const, id: 'LIST' }],
+    }),
   }),
 });
 
@@ -267,4 +295,5 @@ export const {
   useChangePasswordMutation,
   useRequestPasswordResetMutation,
   useResetPasswordMutation,
+  useGetUsersQuery,
 } = authApi;

@@ -13,6 +13,7 @@ import {
   SelectValue,
   DatePicker,
 } from '@/components';
+import { ParticipantsDisplay } from '@/components/list';
 import { useFormValidation } from '@/hooks';
 import { useAddTaskMutation } from '@/api';
 import type { TaskStatus, TaskPriority } from '@/types';
@@ -48,6 +49,7 @@ export default function AddTaskDialog({ isOpen, onOpenChange }: AddTaskDialogPro
   const [status, setStatus] = useState(INITIAL_FORM_STATE.status);
   const [priority, setPriority] = useState(INITIAL_FORM_STATE.priority);
   const [dueDate, setDueDate] = useState<string | null>(INITIAL_FORM_STATE.dueDate);
+  const [participantIds, setParticipantIds] = useState<string[]>([]);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [addTask] = useAddTaskMutation();
   const { errors, validateForm, clearErrors, validateField } = useFormValidation();
@@ -58,6 +60,7 @@ export default function AddTaskDialog({ isOpen, onOpenChange }: AddTaskDialogPro
     setStatus(INITIAL_FORM_STATE.status);
     setPriority(INITIAL_FORM_STATE.priority);
     setDueDate(INITIAL_FORM_STATE.dueDate);
+    setParticipantIds([]);
     setTouched({});
     clearErrors();
   }, [clearErrors]);
@@ -86,6 +89,7 @@ export default function AddTaskDialog({ isOpen, onOpenChange }: AddTaskDialogPro
           priority,
           status,
           dueDate: dueDate ?? undefined,
+          participantIds: participantIds.length > 0 ? participantIds : undefined,
         }).unwrap();
 
         resetForm();
@@ -198,6 +202,16 @@ export default function AddTaskDialog({ isOpen, onOpenChange }: AddTaskDialogPro
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Participants Select */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Participants</label>
+            <ParticipantsDisplay
+              participantIds={participantIds}
+              onParticipantsChange={setParticipantIds}
+              isEditable={true}
+            />
           </div>
 
           {/* Dialog Footer */}

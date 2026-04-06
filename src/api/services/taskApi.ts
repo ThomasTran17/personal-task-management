@@ -14,6 +14,7 @@ interface CreateTaskPayload {
   readonly priority: 'LOW' | 'MEDIUM' | 'HIGH';
   readonly dueDate?: string;
   readonly status?: 'TODO' | 'IN_PROGRESS' | 'DONE';
+  readonly participantIds?: string[];
 }
 
 interface UpdateTaskPayload {
@@ -22,6 +23,7 @@ interface UpdateTaskPayload {
   readonly priority?: 'LOW' | 'MEDIUM' | 'HIGH';
   readonly dueDate?: string;
   readonly status?: 'TODO' | 'IN_PROGRESS' | 'DONE';
+  readonly participantIds?: string[];
 }
 
 /**

@@ -6,6 +6,7 @@
 export {
   useChangePasswordMutation,
   useGetProfileQuery,
+  useGetUsersQuery,
   useLoginMutation,
   useLogoutMutation,
   useRefreshTokenMutation,

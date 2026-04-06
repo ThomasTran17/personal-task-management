@@ -13,6 +13,7 @@ import {
   SelectValue,
   DatePicker,
 } from '@/components';
+import { ParticipantsDisplay } from '@/components/list';
 import { useFormValidation } from '@/hooks';
 import { useUpdateTaskMutation } from '@/api';
 import type { Task, TaskStatus, TaskPriority } from '@/types';
@@ -41,6 +42,7 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
   const [status, setStatus] = useState<TaskStatus>('TODO');
   const [priority, setPriority] = useState<TaskPriority>('MEDIUM');
   const [dueDate, setDueDate] = useState<string | null>(null);
+  const [participantIds, setParticipantIds] = useState<string[]>([]);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [updateTask] = useUpdateTaskMutation();
   const { errors, validateForm, clearErrors, validateField } = useFormValidation();
@@ -54,6 +56,7 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
         setStatus(task.status);
         setPriority(task.priority);
         setDueDate(task.dueDate ?? null);
+        setParticipantIds(task.participantIds ?? []);
       };
 
       const timeoutId = setTimeout(initializeForm, 0);
@@ -67,6 +70,7 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
     setStatus('TODO');
     setPriority('MEDIUM');
     setDueDate(null);
+    setParticipantIds([]);
     setTouched({});
     clearErrors();
   }, [clearErrors]);
@@ -98,6 +102,7 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
             status,
             priority,
             dueDate: dueDate ?? undefined,
+            participantIds: participantIds.length > 0 ? participantIds : undefined,
           },
         }).unwrap();
 
@@ -211,6 +216,16 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Participants Select */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Participants</label>
+            <ParticipantsDisplay
+              participantIds={participantIds}
+              onParticipantsChange={setParticipantIds}
+              isEditable={true}
+            />
           </div>
 
           {/* Dialog Footer */}
