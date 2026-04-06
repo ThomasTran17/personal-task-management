@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { useAddTaskMutation, useAddSubtaskMutation } from '@/api';
+import { useAddTaskMutation, useAddSubtaskMutation, useUpdateTaskMutation } from '@/api';
 import type { TaskPriority, TaskStatus } from '@/types';
 import type { Task } from '@/types/task';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
@@ -104,6 +104,7 @@ interface SubtaskListProps {
   selectedIds: Set<string>;
   onSubtaskToggle: (subtaskId: string) => void;
   onSelectAllSubtasks: () => void;
+  onUpdateParticipants?: (taskId: string, participantIds: string[]) => void;
 }
 
 function SubtaskList({
@@ -114,6 +115,7 @@ function SubtaskList({
   selectedIds,
   onSubtaskToggle,
   onSelectAllSubtasks,
+  onUpdateParticipants,
 }: SubtaskListProps) {
   const midIndex = (subtasks.length - 1) >> 1;
   const isSingleSubtask = subtasks.length === 1;
@@ -144,9 +146,9 @@ function SubtaskList({
             </TableHead>
             <TableHead className="w-[30%]">Title</TableHead>
             <TableHead className="w-[20%]">Participants</TableHead>
-            <TableHead className="w-[15%]">Status</TableHead>
+            <TableHead className="w-[12%]">Status</TableHead>
             <TableHead className="w-[15%]">Due Date</TableHead>
-            <TableHead className="w-[10%] last:rounded-tr-none">Priority</TableHead>
+            <TableHead className="w-[13%] last:rounded-tr-none">Priority</TableHead>
           </TableRow>
         </SubtaskTableHeader>
         <TableBody>
@@ -162,7 +164,13 @@ function SubtaskList({
             >
               <TableCell className="text-sm">{subtask.title}</TableCell>
               <TableCell className="text-gray-600 text-sm">
-                <ParticipantsDisplay participantIds={subtask.participantIds} />
+                <ParticipantsDisplay
+                  participantIds={subtask.participantIds}
+                  isEditable={true}
+                  onParticipantsChange={(participantIds) =>
+                    onUpdateParticipants?.(subtask.id, participantIds)
+                  }
+                />
               </TableCell>
               <TableCell>
                 <span
@@ -211,6 +219,7 @@ export default function TaskList({
 }: TaskListProps) {
   const [addTask] = useAddTaskMutation();
   const [addSubtask] = useAddSubtaskMutation();
+  const [updateTask] = useUpdateTaskMutation();
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -296,6 +305,24 @@ export default function TaskList({
       setSelectedIds(new Set());
     },
     [selectedIds, setSelectedIds]
+  );
+
+  const handleUpdateParticipants = useCallback(
+    (taskId: string, participantIds: string[]) => {
+      void (async () => {
+        try {
+          await updateTask({
+            id: taskId,
+            updates: {
+              participantIds: participantIds.length > 0 ? participantIds : undefined,
+            },
+          }).unwrap();
+        } catch (error) {
+          console.error('Failed to update participants:', error);
+        }
+      })();
+    },
+    [updateTask]
   );
 
   // Toggle subtask expansion state
@@ -476,9 +503,9 @@ export default function TaskList({
                   </TableHead>
                   <TableHead className="w-[35%]">Title</TableHead>
                   <TableHead className="w-[20%]">Participants</TableHead>
-                  <TableHead className="w-[15%]">Status</TableHead>
+                  <TableHead className="w-[12%]">Status</TableHead>
                   <TableHead className="w-[15%]">Due Date</TableHead>
-                  <TableHead className="w-[10%]">Priority</TableHead>
+                  <TableHead className="w-[13%]">Priority</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -509,7 +536,13 @@ export default function TaskList({
                         actionContent={
                           <>
                             <TableCell className="text-gray-600 text-sm">
-                              <ParticipantsDisplay participantIds={task.participantIds} />
+                              <ParticipantsDisplay
+                                participantIds={task.participantIds}
+                                isEditable={true}
+                                onParticipantsChange={(participantIds) =>
+                                  handleUpdateParticipants(task.id, participantIds)
+                                }
+                              />
                             </TableCell>
                             <TableCell>
                               <span
@@ -563,6 +596,7 @@ export default function TaskList({
                               onSelectAllSubtasks={() =>
                                 handleSelectAllSubtasks(task.id, subtasksData)
                               }
+                              onUpdateParticipants={handleUpdateParticipants}
                             />
                           </TableCell>
                         </TableRow>

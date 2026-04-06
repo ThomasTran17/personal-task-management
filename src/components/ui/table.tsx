@@ -79,7 +79,16 @@ export function TableHead({ className, ...props }: React.ThHTMLAttributes<HTMLTa
 // Table Cell - Neubrutalism padding and borders
 export function TableCell({ className, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <td className={cn('py-2', CELL_BASE_CLASSES, CELL_CHECKBOX_ADJUSTMENT, className)} {...props} />
+    <td
+      className={cn(
+        'py-2',
+        CELL_BASE_CLASSES,
+        CELL_CHECKBOX_ADJUSTMENT,
+        'has-[.no-padding]:p-0',
+        className
+      )}
+      {...props}
+    />
   );
 }
 

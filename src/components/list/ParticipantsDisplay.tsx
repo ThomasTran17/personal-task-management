@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, CircleUser } from 'lucide-react';
-import { CheckIcon, ChevronsUpDown } from 'lucide-react';
+import { CheckIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Command,
@@ -27,7 +27,8 @@ interface ParticipantsDisplayProps {
  * Format: @username1, @username2, ...
  * Empty state: Shows Plus and CircleUser icons
  *
- * When isEditable is true, clicking on it opens a combobox to select participants
+ * When isEditable is true, clicking on it opens a combobox to select participants directly
+ * (inline edit without needing to open a dialog)
  *
  * @param participantIds - Array of participant IDs/usernames
  * @param maxDisplay - Maximum number of participants to display (default: 3)
@@ -43,29 +44,34 @@ export function ParticipantsDisplay({
   const [open, setOpen] = useState(false);
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>(participantIds);
 
+  // Sync selected participants with participantIds prop
+  useEffect(() => {
+    setSelectedParticipants(participantIds);
+  }, [participantIds]);
+
   // Fetch list of users
   const { data: users = [] } = useGetUsersQuery();
 
   // Display content
   const displayContent = (
     <>
-      {participantIds.length === 0 ? (
+      {selectedParticipants.length === 0 ? (
         <div className="flex items-center gap-1.5">
-          <Plus size={16} className="text-gray-400" />
-          <CircleUser size={16} className="text-gray-400" />
+          <Plus size={60} className="text-gray-400" />
+          <CircleUser size={60} className="text-gray-400" />
         </div>
       ) : (
         <span className="text-gray-700 text-sm">
-          {participantIds.slice(0, maxDisplay).map((id, index) => (
+          {selectedParticipants.slice(0, maxDisplay).map((id, index) => (
             <React.Fragment key={id}>
               {index > 0 && ', '}
               <span className="font-medium">@{id}</span>
             </React.Fragment>
           ))}
-          {Math.max(0, participantIds.length - maxDisplay) > 0 && (
+          {Math.max(0, selectedParticipants.length - maxDisplay) > 0 && (
             <span className="text-gray-500">
               {' '}
-              +{Math.max(0, participantIds.length - maxDisplay)}
+              +{Math.max(0, selectedParticipants.length - maxDisplay)}
             </span>
           )}
         </span>
@@ -94,18 +100,17 @@ export function ParticipantsDisplay({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+      <PopoverTrigger asChild className="bg-transparent border-none">
         <Button
           variant="noShadow"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between md:max-w-[300px]"
+          className="w-full justify-between md:max-w-[300px] p-0 no-padding px-2"
         >
           <div className="flex-1 text-left overflow-hidden text-ellipsis">{displayContent}</div>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-(--radix-popover-trigger-width) border-0 p-0">
+      <PopoverContent className="w-full border-0 p-0 ">
         <Command className="**:data-[slot=command-input-wrapper]:h-11">
           <CommandInput placeholder="Search users..." />
           <CommandList className="p-1">
