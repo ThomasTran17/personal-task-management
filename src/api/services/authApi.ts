@@ -17,6 +17,7 @@ import type {
   ResetPasswordRequest,
   UserAttributes,
   UserWithAttributes,
+  UserResponseDto,
 } from '@/api';
 
 /**
@@ -251,11 +252,11 @@ export const authApi = baseApi.injectEndpoints({
      * Get all users in the system
      * @query
      */
-    getUsers: builder.query<readonly UserWithAttributes[], void>({
+    getUsers: builder.query<readonly UserResponseDto[], void>({
       query: () => '/users',
       transformResponse: (
         response: JsonApiResponse<UserAttributes>
-      ): readonly UserWithAttributes[] => {
+      ): readonly UserResponseDto[] => {
         // Handle array of resources
         if (!Array.isArray(response.data)) {
           throw new Error('getUsers response should contain array of user resources');
@@ -263,7 +264,16 @@ export const authApi = baseApi.injectEndpoints({
 
         return response.data.map((resource: JsonApiResource<UserAttributes>) => ({
           id: resource.id,
-          ...resource.attributes,
+          email: resource.attributes.email,
+          firstName: resource.attributes.firstName ?? '',
+          lastName: resource.attributes.lastName ?? '',
+          avatar: resource.attributes.photoUrl,
+          createdAt: resource.attributes.createdAt
+            ? new Date(resource.attributes.createdAt)
+            : undefined,
+          updatedAt: resource.attributes.updatedAt
+            ? new Date(resource.attributes.updatedAt)
+            : undefined,
         }));
       },
       providesTags: (result) =>

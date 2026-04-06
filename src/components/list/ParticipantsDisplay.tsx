@@ -13,7 +13,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { useGetUsersQuery } from '@/api';
-import type { UserWithAttributes } from '@/api';
+import type { UserResponseDto } from '@/api';
 
 interface ParticipantsDisplayProps {
   participantIds?: string[];
@@ -94,8 +94,9 @@ export function ParticipantsDisplay({
   };
 
   // Get user display name
-  const getUserDisplayName = (user: UserWithAttributes): string => {
-    return user.displayName ?? user.firstName ?? user.email ?? user.id;
+  const getUserDisplayName = (user: UserResponseDto): string => {
+    const fullName = `${user.firstName} ${user.lastName}`.trim();
+    return fullName || user.email || user.id;
   };
 
   return (

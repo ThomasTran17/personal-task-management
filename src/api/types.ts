@@ -158,6 +158,20 @@ export interface UserWithAttributes extends UserAttributes {
 }
 
 /**
+ * User response DTO (from backend endpoint response)
+ * Matches UserResponseDto structure from backend
+ */
+export interface UserResponseDto {
+  readonly id: string;
+  readonly email: string;
+  readonly firstName: string;
+  readonly lastName: string;
+  readonly avatar?: string;
+  readonly createdAt?: Date;
+  readonly updatedAt?: Date;
+}
+
+/**
  * Login request payload
  */
 export interface LoginRequest {
