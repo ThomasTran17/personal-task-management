@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { useGetTasksQuery } from '@/api';
+import { useGetTasksQuery, useAddTaskMutation, useAddSubtaskMutation } from '@/api';
 import type { TaskPriority, TaskStatus } from '@/types';
 import type { Task } from '@/types/task';
 import { cn, sortTasksByDeadline } from '@/lib';
@@ -87,72 +87,6 @@ const getPriorityLabel = (priority: TaskPriority, isShort = false): string => {
     ? PRIORITY_CONFIG[priority]?.shortLabel || ''
     : PRIORITY_CONFIG[priority]?.label || '';
 };
-
-// Mock data for testing table with subtasks and visual connectors
-const MOCK_SUBTASKS_MAP: Record<string, Subtask[]> = {
-  'task-1': [
-    { id: 'sub-1-1', title: 'Design database schema', status: 'DONE', priority: 'HIGH' },
-    { id: 'sub-1-2', title: 'Setup API endpoints', status: 'IN_PROGRESS', priority: 'HIGH' },
-    { id: 'sub-1-3', title: 'Write unit tests', status: 'TODO', priority: 'MEDIUM' },
-  ],
-  'task-2': [
-    { id: 'sub-2-2', title: 'Add password validation', status: 'TODO', priority: 'MEDIUM' },
-  ],
-};
-
-// Mock tasks for UI demonstration
-const MOCK_TASKS: Task[] = [
-  {
-    id: 'task-1',
-    title: 'Setup Project Infrastructure',
-    description: 'Initialize database, API setup, and deployment pipeline',
-    status: 'DONE',
-    priority: 'HIGH',
-    createdAt: new Date('2026-03-15'),
-    updatedAt: new Date('2026-03-20'),
-    dueDate: new Date('2026-04-05'),
-  },
-  {
-    id: 'task-2',
-    title: 'Implement User Authentication',
-    description: 'Login, registration, password reset functionality',
-    status: 'IN_PROGRESS',
-    priority: 'HIGH',
-    createdAt: new Date('2026-03-18'),
-    updatedAt: new Date('2026-03-25'),
-    dueDate: new Date('2026-04-10'),
-  },
-  {
-    id: 'task-3',
-    title: 'Design Dashboard UI',
-    description: 'Create responsive dashboard with analytics',
-    status: 'TODO',
-    priority: 'MEDIUM',
-    createdAt: new Date('2026-03-20'),
-    updatedAt: new Date('2026-03-20'),
-    dueDate: new Date('2026-04-15'),
-  },
-  {
-    id: 'task-4',
-    title: 'Write API Documentation',
-    description: 'Document all endpoints and authentication flows',
-    status: 'TODO',
-    priority: 'LOW',
-    createdAt: new Date('2026-03-22'),
-    updatedAt: new Date('2026-03-22'),
-    dueDate: new Date('2026-04-20'),
-  },
-  {
-    id: 'task-5',
-    title: 'Deploy to Production',
-    description: 'Setup CI/CD pipeline and deploy application',
-    status: 'DONE',
-    priority: 'HIGH',
-    createdAt: new Date('2026-02-01'),
-    updatedAt: new Date('2026-03-10'),
-    dueDate: new Date('2026-03-10'),
-  },
-];
 
 // SubtaskList Component - Extracted logic for rendering subtasks
 interface SubtaskListProps {
@@ -256,15 +190,15 @@ function SubtaskList({
 }
 
 export default function TaskList() {
-  const { data: tasksFromApi = [] } = useGetTasksQuery();
-  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set(['task-1', 'task-2']));
-  const [subtasksMap, setSubtasksMap] = useState<Record<string, Subtask[]>>(MOCK_SUBTASKS_MAP);
+  const { data: tasksFromApi = [], isLoading, error } = useGetTasksQuery();
+  const [addTask] = useAddTaskMutation();
+  const [addSubtask] = useAddSubtaskMutation();
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+  const [subtasksMap] = useState<Record<string, Subtask[]>>({});
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [localTasks, setLocalTasks] = useState<Task[]>([]);
 
-  // Use mock data if API data is empty, otherwise use API data
-  const tasks =
-    tasksFromApi.length > 0 ? tasksFromApi : localTasks.length > 0 ? localTasks : MOCK_TASKS;
+  // Use API data directly from tasks, which are already fetched
+  const tasks = tasksFromApi;
 
   // Sort tasks by deadline
   const filteredAndSortedTasks = sortTasksByDeadline([...tasks]);
@@ -362,25 +296,26 @@ export default function TaskList() {
     return subtasksMap[taskId] || [];
   };
 
-  // Handle adding a new subtask with immutable state update
+  // Handle adding a new subtask with API call
   const handleAddSubtask = useCallback(
     (parentTaskId: string, title: string) => {
-      setSubtasksMap((prev) => {
-        const subtasks = prev[parentTaskId] || [];
-        const newSubtask: Subtask = {
-          id: `sub-${parentTaskId}-${subtasks.length + 1}`,
-          title,
+      if (!title.trim()) return;
+
+      addSubtask({
+        parentId: parentTaskId,
+        payload: {
+          title: title.trim(),
+          description: '',
           status: 'TODO',
           priority: 'MEDIUM',
-        };
-
-        return {
-          ...prev,
-          [parentTaskId]: [...(prev[parentTaskId] || []), newSubtask],
-        };
-      });
+        },
+      })
+        .unwrap()
+        .catch((err) => {
+          console.error('Failed to create subtask:', err);
+        });
     },
-    [setSubtasksMap]
+    [addSubtask]
   );
 
   // Handle adding a new parent task
@@ -388,24 +323,19 @@ export default function TaskList() {
     (title: string) => {
       if (!title.trim()) return;
 
-      const newTask: Task = {
-        id: `task-${Date.now()}`,
+      addTask({
         title: title.trim(),
         description: '',
         status: 'TODO',
         priority: 'MEDIUM',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        dueDate: new Date(new Date().setDate(new Date().getDate() + 7)), // Default to 7 days from now
-      };
-
-      // Add to local state to update UI immediately
-      setLocalTasks((prev) => [newTask, ...prev]);
-
-      // TODO: Implement API call to create task
-      console.warn('Add task clicked:', newTask);
+        dueDate: new Date(new Date().setDate(new Date().getDate() + 7)).toISOString(), // Default to 7 days from now
+      })
+        .unwrap()
+        .catch((err) => {
+          console.error('Failed to create task:', err);
+        });
     },
-    [setLocalTasks]
+    [addTask]
   );
 
   // TOP-DOWN SYNC: Parent toggle syncs all visible children (View-Driven)
@@ -471,7 +401,7 @@ export default function TaskList() {
   );
 
   const getCurrentStatus: () => TaskStatus = useCallback(() => {
-    if (tasks.every(({ status }) => status === 'DONE')) {
+    if (tasks.every((task: Task) => task.status === 'DONE')) {
       return 'DONE';
     }
     return 'IN_PROGRESS';
@@ -482,12 +412,26 @@ export default function TaskList() {
       <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold mb-6">Task List</h1>
 
+        {/* Loading State */}
+        {isLoading && (
+          <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+            <p className="text-gray-500 text-lg">Loading tasks...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !isLoading && (
+          <div className="text-center py-12 bg-red-50 rounded-lg border border-red-200">
+            <p className="text-red-600 text-lg">Failed to load tasks. Please try again later.</p>
+          </div>
+        )}
+
         {/* Task Table */}
-        {filteredAndSortedTasks.length === 0 ? (
+        {!isLoading && !error && filteredAndSortedTasks.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
             <p className="text-gray-500 text-lg">No tasks available</p>
           </div>
-        ) : (
+        ) : !isLoading && !error ? (
           <div>
             <Table className="border-l-0">
               <TableHeader>
@@ -595,7 +539,7 @@ export default function TaskList() {
               </TableBody>
             </Table>
           </div>
-        )}
+        ) : null}
 
         {/* Bulk Actions Bar */}
         <BulkActions
