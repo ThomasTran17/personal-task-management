@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useGetTasksQuery, useAddTaskMutation, useAddSubtaskMutation } from '@/api';
 import type { TaskPriority, TaskStatus } from '@/types';
 import type { Task } from '@/types/task';
-import { cn, sortTasksByDeadline } from '@/lib';
+import { cn, sortTasksByDeadline, formatDateToLocale } from '@/lib';
 import {
   Table,
   TableBody,
@@ -164,9 +164,7 @@ function SubtaskList({
                 </span>
               </TableCell>
               <TableCell>
-                <span>
-                  {subtask.dueDate ? new Date(subtask.dueDate).toLocaleDateString('vi-VN') : '-'}
-                </span>
+                <span>{subtask.dueDate ? formatDateToLocale(subtask.dueDate) : ''}</span>
               </TableCell>
             </SubtaskTableRow>
           ))}
@@ -495,9 +493,7 @@ export default function TaskList() {
                               </span>
                             </TableCell>
                             <TableCell>
-                              {task.dueDate
-                                ? new Date(task.dueDate).toLocaleDateString('vi-VN')
-                                : '-'}
+                              {task.dueDate ? formatDateToLocale(task.dueDate) : '-'}
                             </TableCell>
                           </>
                         }

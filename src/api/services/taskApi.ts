@@ -25,11 +25,12 @@ interface UpdateTaskPayload {
 }
 
 /**
- * Helper function to transform TaskAttributes (string dates) to Task (Date objects)
+ * Helper function to map TaskAttributes (API response) to Task (Redux store)
+ * Keeps dates as ISO strings (no conversion to Date objects)
  * Handles nested subtasks recursively
  * Converts BE TaskResponseDto format to FE Task format
  */
-function transformTaskAttributes(attrs: TaskAttributes & { id?: string }, id?: string): Task {
+function mapTaskAttributes(attrs: TaskAttributes & { id?: string }, id?: string): Task {
   const taskId = id ?? attrs.id! ?? '';
   const task: Task = {
     id: taskId,
@@ -40,15 +41,15 @@ function transformTaskAttributes(attrs: TaskAttributes & { id?: string }, id?: s
     ownerId: attrs.ownerId,
     parentId: attrs.parentId ?? undefined,
     participantIds: attrs.participantIds ? Array.from(attrs.participantIds) : [],
-    dueDate: attrs.dueDate ? new Date(attrs.dueDate) : undefined,
-    createdAt: new Date(attrs.createdAt),
-    updatedAt: new Date(attrs.updatedAt),
+    dueDate: attrs.dueDate, // Keep as ISO string - no conversion to Date
+    createdAt: attrs.createdAt, // Keep as ISO string - no conversion to Date
+    updatedAt: attrs.updatedAt, // Keep as ISO string - no conversion to Date
   };
 
   // Handle nested subtasks recursively
   if (attrs.subtasks && Array.isArray(attrs.subtasks)) {
     task.subtasks = attrs.subtasks.map((subtaskAttrs: TaskAttributes & { id?: string }) =>
-      transformTaskAttributes(subtaskAttrs, subtaskAttrs.id)
+      mapTaskAttributes(subtaskAttrs, subtaskAttrs.id)
     );
   }
 
@@ -76,7 +77,7 @@ export const taskApi = baseApi.injectEndpoints({
         }
 
         return response.data.map((resource: JsonApiResource<TaskAttributes>) =>
-          transformTaskAttributes(resource.attributes, resource.id)
+          mapTaskAttributes(resource.attributes, resource.id)
         );
       },
       providesTags: (result) =>
@@ -101,7 +102,7 @@ export const taskApi = baseApi.injectEndpoints({
         }
 
         return response.data.map((resource: JsonApiResource<TaskAttributes>) =>
-          transformTaskAttributes(resource.attributes, resource.id)
+          mapTaskAttributes(resource.attributes, resource.id)
         );
       },
       providesTags: (result, _error, parentId) =>
@@ -127,7 +128,7 @@ export const taskApi = baseApi.injectEndpoints({
         }
 
         const resource = response.data as JsonApiResource<TaskAttributes>;
-        return transformTaskAttributes(resource.attributes, resource.id);
+        return mapTaskAttributes(resource.attributes, resource.id);
       },
       providesTags: (result) => (result ? [{ type: 'Task' as const, id: result.id }] : []),
     }),
@@ -149,7 +150,7 @@ export const taskApi = baseApi.injectEndpoints({
         }
 
         const resource = response.data as JsonApiResource<TaskAttributes>;
-        return transformTaskAttributes(resource.attributes, resource.id);
+        return mapTaskAttributes(resource.attributes, resource.id);
       },
       invalidatesTags: [{ type: 'Task', id: 'LIST' }],
       // Optimistic update: add task to cache before server response
@@ -157,6 +158,7 @@ export const taskApi = baseApi.injectEndpoints({
         // Get current tasks from cache
         const patchResult = dispatch(
           taskApi.util.updateQueryData('getTasks', undefined, (draft) => {
+            const now = new Date().toISOString();
             const newTask: Task = {
               id: `temp-${Date.now()}`,
               title: arg.title,
@@ -166,12 +168,12 @@ export const taskApi = baseApi.injectEndpoints({
               ownerId: '', // Will be updated from server
               parentId: undefined,
               participantIds: [],
-              createdAt: new Date(),
-              updatedAt: new Date(),
+              createdAt: now,
+              updatedAt: now,
             };
 
             if (arg.dueDate) {
-              newTask.dueDate = new Date(arg.dueDate);
+              newTask.dueDate = arg.dueDate;
             }
 
             // @ts-expect-error - draft is mutable in RTK Query
@@ -216,7 +218,7 @@ export const taskApi = baseApi.injectEndpoints({
         }
 
         const resource = response.data as JsonApiResource<TaskAttributes>;
-        return transformTaskAttributes(resource.attributes, resource.id);
+        return mapTaskAttributes(resource.attributes, resource.id);
       },
       invalidatesTags: (result, _error, { parentId }) => [
         // Invalidate parent task to refresh subtasks
@@ -230,6 +232,7 @@ export const taskApi = baseApi.injectEndpoints({
           taskApi.util.updateQueryData('getTasks', undefined, (draft) => {
             const parentTask = draft.find((t) => t.id === parentId);
             if (parentTask) {
+              const now = new Date().toISOString();
               const newSubtask: Task = {
                 id: `temp-${Date.now()}`,
                 title: payload.title,
@@ -239,12 +242,12 @@ export const taskApi = baseApi.injectEndpoints({
                 ownerId: '', // Will be updated from server
                 parentId,
                 participantIds: [],
-                createdAt: new Date(),
-                updatedAt: new Date(),
+                createdAt: now,
+                updatedAt: now,
               };
 
               if (payload.dueDate) {
-                newSubtask.dueDate = new Date(payload.dueDate);
+                newSubtask.dueDate = payload.dueDate;
               }
 
               parentTask.subtasks ??= [];
@@ -292,7 +295,7 @@ export const taskApi = baseApi.injectEndpoints({
         }
 
         const resource = response.data as JsonApiResource<TaskAttributes>;
-        return transformTaskAttributes(resource.attributes, resource.id);
+        return mapTaskAttributes(resource.attributes, resource.id);
       },
       invalidatesTags: (result, _error, { id }) => [
         { type: 'Task', id },
@@ -304,7 +307,7 @@ export const taskApi = baseApi.injectEndpoints({
           taskApi.util.updateQueryData('getTasks', undefined, (draft) => {
             const task = draft.find((t) => t.id === id);
             if (task) {
-              Object.assign(task, updates, { updatedAt: new Date() });
+              Object.assign(task, updates, { updatedAt: new Date().toISOString() });
             }
           })
         );

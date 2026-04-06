@@ -4,9 +4,9 @@ export interface Task {
   description?: string;
   status: 'TODO' | 'IN_PROGRESS' | 'DONE';
   priority: 'LOW' | 'MEDIUM' | 'HIGH';
-  createdAt: Date;
-  updatedAt: Date;
-  dueDate?: Date;
+  createdAt: string; // ISO String - do NOT store Date objects in Redux
+  updatedAt: string; // ISO String - do NOT store Date objects in Redux
+  dueDate?: string; // ISO String - do NOT store Date objects in Redux
   ownerId: string;
   parentId?: string | null;
   participantIds?: string[];

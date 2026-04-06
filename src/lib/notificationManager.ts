@@ -108,7 +108,7 @@ export const processTaskNotification = (
 
   // Handle urgent notification
   if (isUrgent) {
-    handleUrgentNotification(task.id, task.title, task.dueDate.toISOString());
+    handleUrgentNotification(task.id, task.title, task.dueDate);
   } else {
     globalBrowserNotificationState.oneHourNotified.delete(task.id);
   }
