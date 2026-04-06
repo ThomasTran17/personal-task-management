@@ -21,6 +21,8 @@ interface KanbanBoardProps {
   filterStatus: TaskStatus | 'all';
   filterPriority: TaskPriority | 'all';
   onFilterStatusChange: (status: TaskStatus | 'all') => void;
+  onEditTask?: (task: Task) => void;
+  onDeleteTask?: (task: Task) => void;
 }
 
 const COLUMNS = [
@@ -37,6 +39,8 @@ export default function KanbanBoard({
   filterStatus,
   filterPriority,
   onFilterStatusChange,
+  onEditTask,
+  onDeleteTask,
 }: KanbanBoardProps) {
   // RTK Query hooks for mutations
   const [deleteTask] = useDeleteTaskMutation();
@@ -105,7 +109,10 @@ export default function KanbanBoard({
                 bgColor={column.bgColor}
                 tasks={getTasksByStatus(column.status)}
                 onDeleteTask={(id: string) => {
-                  void deleteTask(id);
+                  const task = tasks.find((t) => t.id === id);
+                  if (task) {
+                    onDeleteTask?.(task);
+                  }
                 }}
                 isFiltered={filterStatus !== 'all'}
                 draggedTaskId={dragState.draggedTaskId}
@@ -113,6 +120,7 @@ export default function KanbanBoard({
                 onDragEnd={handleDragEnd}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
+                onEditTask={onEditTask}
               />
             );
           })}

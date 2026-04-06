@@ -33,6 +33,8 @@ interface TaskListProps {
   filterStatus: TaskStatus | 'all';
   filterPriority: TaskPriority | 'all';
   onFilterStatusChange?: (status: TaskStatus | 'all') => void;
+  onEditTask?: (task: Task) => void;
+  onDeleteTask?: (task: Task) => void;
 }
 
 // Configuration mapping for status labels and colors
@@ -143,7 +145,7 @@ function SubtaskList({
             <TableHead className="w-[20%]">Description</TableHead>
             <TableHead className="w-[15%]">Status</TableHead>
             <TableHead className="w-[15%]">Priority</TableHead>
-            <TableHead className="w-[10%]">Due Date</TableHead>
+            <TableHead className="w-[10%] last:rounded-tr-none">Due Date</TableHead>
           </TableRow>
         </SubtaskTableHeader>
         <TableBody>
@@ -200,6 +202,8 @@ export default function TaskList({
   searchQuery,
   filterStatus,
   filterPriority,
+  onEditTask,
+  onDeleteTask,
 }: TaskListProps) {
   const [addTask] = useAddTaskMutation();
   const [addSubtask] = useAddSubtaskMutation();
@@ -496,6 +500,8 @@ export default function TaskList({
                         titleContent={
                           <span className="font-semibold text-gray-900">{task.title}</span>
                         }
+                        onEditTask={() => onEditTask?.(task)}
+                        onDeleteTask={() => onDeleteTask?.(task)}
                         actionContent={
                           <>
                             <TableCell className="text-gray-600 truncate">

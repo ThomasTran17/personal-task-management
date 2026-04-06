@@ -1,9 +1,26 @@
 import { useState } from 'react';
-import { KanbanBoard, TaskList, SearchAndFilter, AddTaskDialog } from '@/components';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui';
-import { useGetTasksQuery } from '@/api';
+import {
+  KanbanBoard,
+  TaskList,
+  SearchAndFilter,
+  AddTaskDialog,
+  EditTaskDialog,
+} from '@/components';
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui';
+import { useGetTasksQuery, useDeleteTaskMutation } from '@/api';
 import { Grid3x3, List } from 'lucide-react';
-import type { TaskStatus, TaskPriority } from '@/types';
+import type { TaskStatus, TaskPriority, Task } from '@/types';
 
 type ViewMode = 'kanban' | 'list';
 
@@ -13,11 +30,17 @@ const VIEW_COMPONENTS = {
 } as const;
 
 export default function ListPage() {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedTaskForEdit, setSelectedTaskForEdit] = useState<Task | null>(null);
+  const [selectedTaskForDelete, setSelectedTaskForDelete] = useState<Task | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<TaskStatus | 'all'>('all');
   const [filterPriority, setFilterPriority] = useState<TaskPriority | 'all'>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
+
+  const [deleteTask] = useDeleteTaskMutation();
 
   // Fetch tasks at parent level (Lift State Up)
   const { data: tasks = [], isLoading, error } = useGetTasksQuery();
@@ -50,7 +73,7 @@ export default function ListPage() {
           searchValue={searchQuery}
           filterStatus={filterStatus}
           filterPriority={filterPriority}
-          onAddTask={() => setIsDialogOpen(true)}
+          onAddTask={() => setIsAddDialogOpen(true)}
         />
       </div>
 
@@ -63,9 +86,51 @@ export default function ListPage() {
         filterStatus={filterStatus}
         filterPriority={filterPriority}
         onFilterStatusChange={setFilterStatus}
+        onEditTask={(task) => {
+          setSelectedTaskForEdit(task);
+          setIsEditDialogOpen(true);
+        }}
+        onDeleteTask={(task) => {
+          setSelectedTaskForDelete(task);
+          setIsDeleteDialogOpen(true);
+        }}
       />
 
-      <AddTaskDialog isOpen={isDialogOpen} onOpenChange={setIsDialogOpen} />
+      {/* Add Task Dialog */}
+      <AddTaskDialog isOpen={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} />
+
+      {/* Edit Task Dialog */}
+      <EditTaskDialog
+        isOpen={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        task={selectedTaskForEdit}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Task ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this task? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex justify-end gap-2">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (selectedTaskForDelete) {
+                  void deleteTask(selectedTaskForDelete.id);
+                  setIsDeleteDialogOpen(false);
+                  setSelectedTaskForDelete(null);
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

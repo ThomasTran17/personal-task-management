@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Edit2, Trash2, Plus } from 'lucide-react';
 import { cn } from '@/lib';
 import { useTaskInput } from '@/hooks/use-task-input';
 import { TableCell } from '@/components/ui/table';
@@ -101,6 +101,9 @@ interface ExpandableTaskRowProps extends React.HTMLAttributes<HTMLTableRowElemen
   // Slot Pattern - Explicit named slots for type-safety
   titleContent: React.ReactNode;
   actionContent?: React.ReactNode;
+  // Edit/Delete callbacks
+  onEditTask?: () => void;
+  onDeleteTask?: () => void;
 }
 
 function ExpandableTaskRowComponent({
@@ -114,12 +117,14 @@ function ExpandableTaskRowComponent({
   onSelectionChange,
   titleContent,
   actionContent,
+  onEditTask,
+  onDeleteTask,
   ...props
 }: ExpandableTaskRowProps) {
   return (
     <tr
       className={cn(
-        'border-y-1 border-table-border border-s-3 transition-all hover:bg-main/10 relative',
+        'border-y-1 border-table-border border-s-3 transition-all hover:bg-main/10 relative group',
         className
       )}
       {...props}
@@ -155,17 +160,42 @@ function ExpandableTaskRowComponent({
               </button>
             )}
             {titleContent}
+
+            <div className="hidden group-hover:block">
+              {onEditTask && (
+                <button
+                  onClick={onEditTask}
+                  className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-colors"
+                  title="Edit task"
+                  aria-label="Edit task"
+                >
+                  <Edit2 className="size-4" />
+                </button>
+              )}
+              {onDeleteTask && (
+                <button
+                  onClick={onDeleteTask}
+                  className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-colors"
+                  title="Delete task"
+                  aria-label="Delete task"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Add Subtask Button - Always visible */}
-          <button
-            onClick={onAddSubtask}
-            className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-colors ml-auto"
-            title="Add subtask"
-            aria-label="Add subtask"
-          >
-            <span className="text-lg font-light leading-none">+</span>
-          </button>
+          {/* Action Buttons - Add Subtask, Edit, Delete */}
+          <div className="hidden group-hover:block flex items-center gap-2 ml-auto">
+            <button
+              onClick={onAddSubtask}
+              className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-colors"
+              title="Add subtask"
+              aria-label="Add subtask"
+            >
+              <Plus className="size-4" />
+            </button>
+          </div>
         </div>
       </TableCell>
       {/* Action cells slot */}

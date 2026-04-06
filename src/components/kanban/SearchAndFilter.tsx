@@ -108,7 +108,7 @@ export default function SearchAndFilter({
       </div>
 
       {/* Floating Circle Add Task Button - Mobile Only */}
-      <div className="fixed bottom-18 right-6 lg:hidden">
+      <div className="fixed bottom-18 right-6 lg:hidden z-50">
         <Button
           onClick={onAddTask}
           variant="default"
