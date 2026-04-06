@@ -4,7 +4,7 @@ import type { TaskPriority, TaskStatus } from '@/types';
 import type { Task } from '@/types/task';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import type { SerializedError } from '@reduxjs/toolkit';
-import { cn, sortTasksByDeadline, formatDateToLocale } from '@/lib';
+import { cn, sortTasksByDeadline, formatISODateString, isDateOverdue } from '@/lib';
 import {
   Table,
   TableBody,
@@ -24,6 +24,7 @@ import {
   BulkActions,
 } from '@/components/tasks';
 import { getStatusColor as getBorderColor } from '@/components/tasks/task-status-colors';
+import { ParticipantsDisplay } from './ParticipantsDisplay';
 
 interface TaskListProps {
   tasks: readonly Task[];
@@ -141,11 +142,11 @@ function SubtaskList({
                 aria-label="Select all subtasks"
               />
             </TableHead>
-            <TableHead className="w-[31%]">Title</TableHead>
-            <TableHead className="w-[20%]">Description</TableHead>
+            <TableHead className="w-[30%]">Title</TableHead>
+            <TableHead className="w-[20%]">Participants</TableHead>
             <TableHead className="w-[15%]">Status</TableHead>
-            <TableHead className="w-[15%]">Priority</TableHead>
-            <TableHead className="w-[10%] last:rounded-tr-none">Due Date</TableHead>
+            <TableHead className="w-[15%]">Due Date</TableHead>
+            <TableHead className="w-[10%] last:rounded-tr-none">Priority</TableHead>
           </TableRow>
         </SubtaskTableHeader>
         <TableBody>
@@ -160,8 +161,8 @@ function SubtaskList({
               onSelectionChange={() => onSubtaskToggle(subtask.id)}
             >
               <TableCell className="text-sm">{subtask.title}</TableCell>
-              <TableCell>
-                <span>{subtask.description ?? '-'}</span>
+              <TableCell className="text-gray-600 text-sm">
+                <ParticipantsDisplay participantIds={subtask.participantIds} />
               </TableCell>
               <TableCell>
                 <span
@@ -172,21 +173,24 @@ function SubtaskList({
               </TableCell>
               <TableCell>
                 <span
+                  className={cn(
+                    'inline-block text-xs font-medium',
+                    isDateOverdue(subtask.dueDate) && 'text-red-600 font-semibold'
+                  )}
+                >
+                  {subtask.dueDate ? formatISODateString(subtask.dueDate, 'dd/mm/yyyy') : '-'}
+                </span>
+              </TableCell>
+              <TableCell>
+                <span
                   className={`inline-block px-2 py-1 rounded text-xs font-medium ${getPriorityColor(subtask.priority as TaskPriority)}`}
                 >
                   {getPriorityLabel(subtask.priority as TaskPriority, true)}
                 </span>
               </TableCell>
-              <TableCell>
-                <span>{subtask.dueDate ? formatDateToLocale(subtask.dueDate) : ''}</span>
-              </TableCell>
             </SubtaskTableRow>
           ))}
-          <AddTaskRow
-            parentStatus={parentTaskStatus}
-            onAddClick={() => console.warn('Add subtask clicked')}
-            onAddTask={onAddSubtask}
-          >
+          <AddTaskRow parentStatus={parentTaskStatus} onAddTask={onAddSubtask}>
             + Add Subtask
           </AddTaskRow>
         </TableBody>
@@ -470,11 +474,11 @@ export default function TaskList({
                       aria-label="Select all tasks"
                     />
                   </TableHead>
-                  <TableHead className="w-[36%]">Title</TableHead>
-                  <TableHead className="w-[20%]">Description</TableHead>
+                  <TableHead className="w-[35%]">Title</TableHead>
+                  <TableHead className="w-[20%]">Participants</TableHead>
                   <TableHead className="w-[15%]">Status</TableHead>
-                  <TableHead className="w-[15%]">Priority</TableHead>
-                  <TableHead className="w-[10%]">Due Date</TableHead>
+                  <TableHead className="w-[15%]">Due Date</TableHead>
+                  <TableHead className="w-[10%]">Priority</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -504,8 +508,8 @@ export default function TaskList({
                         onDeleteTask={() => onDeleteTask?.(task)}
                         actionContent={
                           <>
-                            <TableCell className="text-gray-600 truncate">
-                              {task.description ?? '-'}
+                            <TableCell className="text-gray-600 text-sm">
+                              <ParticipantsDisplay participantIds={task.participantIds} />
                             </TableCell>
                             <TableCell>
                               <span
@@ -516,13 +520,22 @@ export default function TaskList({
                             </TableCell>
                             <TableCell>
                               <span
+                                className={cn(
+                                  'inline-block text-sm font-medium',
+                                  isDateOverdue(task.dueDate) && 'text-red-600 font-semibold'
+                                )}
+                              >
+                                {task.dueDate
+                                  ? formatISODateString(task.dueDate, 'dd/mm/yyyy')
+                                  : '-'}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <span
                                 className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}
                               >
                                 {getPriorityLabel(task.priority)}
                               </span>
-                            </TableCell>
-                            <TableCell>
-                              {task.dueDate ? formatDateToLocale(task.dueDate) : '-'}
                             </TableCell>
                           </>
                         }

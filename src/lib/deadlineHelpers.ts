@@ -110,15 +110,24 @@ export const getDeadlineStatusLabel = (isOverdue: boolean, isDueSoon: boolean): 
 };
 
 /**
- * Sort tasks by deadline status and time
- * Tasks with deadlines appear first, sorted by deadline urgency
+ * Sort tasks by deadline (primary) and priority (secondary)
+ * Primary: By due date (earliest first - ASC)
+ * Secondary: By priority (HIGH > MEDIUM > LOW - DESC)
  * Tasks without deadlines appear last
  * @param tasks - Array of tasks to sort
  * @returns Sorted array of tasks
  */
-export const sortTasksByDeadline = <T extends { dueDate?: string | Date; status?: string }>(
+export const sortTasksByDeadline = <
+  T extends { dueDate?: string | Date; status?: string; priority?: string },
+>(
   tasks: T[]
 ): T[] => {
+  const priorityOrder: Record<string, number> = {
+    HIGH: 3,
+    MEDIUM: 2,
+    LOW: 1,
+  };
+
   return [...tasks].sort((a, b) => {
     // Tasks with deadlines come first
     const aHasDeadline = !!a.dueDate;
@@ -127,14 +136,25 @@ export const sortTasksByDeadline = <T extends { dueDate?: string | Date; status?
     if (aHasDeadline && !bHasDeadline) return -1;
     if (!aHasDeadline && bHasDeadline) return 1;
 
-    // If both have deadlines, sort by earliest deadline
+    // If both have deadlines, sort by earliest deadline (primary)
     if (aHasDeadline && bHasDeadline) {
       const aTime = new Date(a.dueDate!).getTime();
       const bTime = new Date(b.dueDate!).getTime();
-      return aTime - bTime;
+      const dateCompare = aTime - bTime;
+
+      // If dates are equal, sort by priority (secondary - DESC)
+      if (dateCompare === 0) {
+        const aPriority = priorityOrder[a.priority!] ?? 0;
+        const bPriority = priorityOrder[b.priority!] ?? 0;
+        return bPriority - aPriority; // DESC (higher priority first)
+      }
+
+      return dateCompare;
     }
 
-    // If neither has deadline, maintain original order
-    return 0;
+    // If neither has deadline, sort by priority
+    const aPriority = priorityOrder[a.priority!] ?? 0;
+    const bPriority = priorityOrder[b.priority!] ?? 0;
+    return bPriority - aPriority;
   });
 };
