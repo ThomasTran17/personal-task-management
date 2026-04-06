@@ -73,9 +73,7 @@ export const SubtaskTableRow = React.memo(SubtaskTableRowComponent);
 // CONNECTOR IMPLEMENTATION: Vertical stem of L-shape
 // The before:absolute pseudo-element creates the vertical line connecting
 // parent task to all subtasks in this container
-interface SubtaskContainerProps extends React.HTMLAttributes<HTMLDivElement> {
-  parentStatus?: TaskStatus;
-}
+type SubtaskContainerProps = React.HTMLAttributes<HTMLDivElement>;
 
 function SubtaskContainerComponent({ className, children, ...props }: SubtaskContainerProps) {
   return (

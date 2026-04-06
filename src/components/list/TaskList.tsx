@@ -104,7 +104,7 @@ function SubtaskList({
   const isSingleSubtask = subtasks.length === 1;
 
   return (
-    <SubtaskContainer parentStatus={parentTaskStatus}>
+    <SubtaskContainer>
       <table className="w-full border-separate border-spacing-0 table-fixed">
         <SubtaskTableHeader parentStatus={parentTaskStatus}>
           <TableRow>
