@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, CircleUser } from 'lucide-react';
+import { Plus, CircleUser, ChevronsUpDown } from 'lucide-react';
 import { CheckIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +20,7 @@ interface ParticipantsDisplayProps {
   maxDisplay?: number;
   onParticipantsChange?: (participantIds: string[]) => void;
   isEditable?: boolean;
+  hasBorder?: boolean;
 }
 
 /**
@@ -34,12 +35,14 @@ interface ParticipantsDisplayProps {
  * @param maxDisplay - Maximum number of participants to display (default: 3)
  * @param onParticipantsChange - Callback when participants are modified
  * @param isEditable - Whether to allow editing participants (default: false)
+ * @param hasBorder - Whether to show a border around the component (default: false)
  */
 export function ParticipantsDisplay({
   participantIds = [],
   maxDisplay = 3,
   onParticipantsChange,
   isEditable = false,
+  hasBorder = false,
 }: ParticipantsDisplayProps) {
   const [open, setOpen] = useState(false);
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>(participantIds);
@@ -101,7 +104,7 @@ export function ParticipantsDisplay({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild className="bg-transparent border-none">
+      <PopoverTrigger asChild className={cn('bg-transparent', !hasBorder && 'border-none')}>
         <Button
           variant="noShadow"
           role="combobox"
@@ -109,6 +112,7 @@ export function ParticipantsDisplay({
           className="w-full justify-between md:max-w-[300px] p-0 no-padding px-2"
         >
           <div className="flex-1 text-left overflow-hidden text-ellipsis">{displayContent}</div>
+          {hasBorder && <ChevronsUpDown size={16} className="ml-2 text-gray-400" />}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-full border-0 p-0 ">

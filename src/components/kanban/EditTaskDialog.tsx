@@ -225,6 +225,7 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
               participantIds={participantIds}
               onParticipantsChange={setParticipantIds}
               isEditable={true}
+              hasBorder={true}
             />
           </div>
 
