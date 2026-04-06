@@ -233,8 +233,10 @@ export default function TaskList({
     });
   }, [tasks, searchQuery, filterStatus, filterPriority]);
 
-  // Sort tasks by deadline
-  const filteredAndSortedTasks = sortTasksByDeadline([...filteredTasks]);
+  // Sort tasks by deadline - MUST be memoized to prevent ref cleanup loops
+  const filteredAndSortedTasks = useMemo(() => {
+    return sortTasksByDeadline([...filteredTasks]);
+  }, [filteredTasks]);
 
   // Build parentToChildren mapping from nested subtasks
   const parentToChildrenMap = useMemo(() => {
@@ -256,14 +258,16 @@ export default function TaskList({
   }, [filteredAndSortedTasks, parentToChildrenMap]);
 
   // Derived state: isAllSelected compares total visible count with selected count (Full-Tree)
-  const isAllSelected = useMemo(() => {
-    return totalVisibleCount > 0 && selectedIds.size === totalVisibleCount;
-  }, [selectedIds.size, totalVisibleCount]);
+  // Using selectedIds.size for comparison to avoid stale closure in callbacks
+  const isAllSelected = selectedIds.size > 0 && selectedIds.size === totalVisibleCount;
 
   // Full-Tree Select All: Toggle ALL visible rows (Parents + Subtasks)
   const handleSelectAll = useCallback(() => {
-    setSelectedIds((_prev) => {
-      if (isAllSelected) {
+    setSelectedIds((prev) => {
+      // Calculate whether all are selected based on current state
+      const allSelected = prev.size > 0 && prev.size === totalVisibleCount;
+
+      if (allSelected) {
         return new Set();
       }
 
@@ -271,23 +275,26 @@ export default function TaskList({
       const next = new Set<string>();
       filteredAndSortedTasks.forEach((task) => {
         next.add(task.id);
-        (parentToChildrenMap[task.id] || []).forEach((childId) => next.add(childId));
+        const children = parentToChildrenMap[task.id];
+        if (children) {
+          children.forEach((childId) => next.add(childId));
+        }
       });
       return next;
     });
-  }, [isAllSelected, filteredAndSortedTasks, parentToChildrenMap, setSelectedIds]);
+  }, [totalVisibleCount, filteredAndSortedTasks, parentToChildrenMap]);
 
   // Clear selection
   const handleClearSelection = useCallback(() => {
     setSelectedIds(new Set());
-  }, [setSelectedIds]);
+  }, []);
 
   // Bulk actions
   const handleBulkDelete = useCallback(() => {
     console.warn('Delete selected tasks:', Array.from(selectedIds));
     // TODO: Implement API call to delete tasks
     setSelectedIds(new Set());
-  }, [selectedIds, setSelectedIds]);
+  }, [selectedIds]);
 
   const handleBulkStatusChange = useCallback(
     (status: TaskStatus) => {
@@ -295,7 +302,7 @@ export default function TaskList({
       // TODO: Implement API call to update task status
       setSelectedIds(new Set());
     },
-    [selectedIds, setSelectedIds]
+    [selectedIds]
   );
 
   const handleBulkPriorityChange = useCallback(
@@ -304,7 +311,7 @@ export default function TaskList({
       // TODO: Implement API call to update task priority
       setSelectedIds(new Set());
     },
-    [selectedIds, setSelectedIds]
+    [selectedIds]
   );
 
   const handleUpdateParticipants = useCallback(
@@ -326,20 +333,17 @@ export default function TaskList({
   );
 
   // Toggle subtask expansion state
-  const toggleExpanded = useCallback(
-    (taskId: string) => {
-      setExpandedTasks((prev) => {
-        const newSet = new Set(prev);
-        if (newSet.has(taskId)) {
-          newSet.delete(taskId);
-        } else {
-          newSet.add(taskId);
-        }
-        return newSet;
-      });
-    },
-    [setExpandedTasks]
-  );
+  const toggleExpanded = useCallback((taskId: string) => {
+    setExpandedTasks((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
+  }, []);
 
   // Handle adding a new subtask with API call
   const handleAddSubtask = useCallback(
@@ -364,13 +368,9 @@ export default function TaskList({
   );
 
   // Handle opening subtask input
-
-  const handleOpenSubtaskInput = useCallback(
-    (parentTaskId: string) => {
-      setExpandedTasks((prev) => new Set(prev).add(parentTaskId));
-    },
-    [setExpandedTasks]
-  );
+  const handleOpenSubtaskInput = useCallback((parentTaskId: string) => {
+    setExpandedTasks((prev) => new Set(prev).add(parentTaskId));
+  }, []);
 
   // Handle adding a new parent task
   const handleAddTask = useCallback(
@@ -396,10 +396,10 @@ export default function TaskList({
   // Pattern: Only operate on selectedIds Set (No separate subtask state)
   const handleParentSelectionChange = useCallback(
     (taskId: string, isChecking: boolean) => {
-      const visibleChildren = parentToChildrenMap[taskId] || [];
-
       setSelectedIds((prev) => {
+        const visibleChildren = parentToChildrenMap[taskId] || [];
         const next = new Set(prev);
+
         if (isChecking) {
           // Add parent + all visible children
           next.add(taskId);
@@ -412,47 +412,41 @@ export default function TaskList({
         return next;
       });
     },
-    [parentToChildrenMap, setSelectedIds]
+    [parentToChildrenMap]
   );
 
   // INDEPENDENT: Child toggle does NOT affect parent (No Bottom-Up sync)
   // Pattern: Only operate on selectedIds Set
-  const handleSubtaskToggle = useCallback(
-    (_parentId: string, subtaskId: string) => {
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        if (next.has(subtaskId)) {
-          next.delete(subtaskId);
-        } else {
-          next.add(subtaskId);
-        }
-        return next;
-      });
-    },
-    [setSelectedIds]
-  );
+  const handleSubtaskToggle = useCallback((_parentId: string, subtaskId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(subtaskId)) {
+        next.delete(subtaskId);
+      } else {
+        next.add(subtaskId);
+      }
+      return next;
+    });
+  }, []);
 
   // Select/Deselect all visible subtasks under parent (header checkbox, View-Driven)
   // Pattern: Only operate on selectedIds Set
-  const handleSelectAllSubtasks = useCallback(
-    (_parentId: string, subtasks: readonly Task[]) => {
-      const subtaskIds = subtasks.map((s) => s.id);
+  const handleSelectAllSubtasks = useCallback((_parentId: string, subtasks: readonly Task[]) => {
+    const subtaskIds = subtasks.map((s) => s.id);
 
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        const currentSelection = new Set(subtaskIds.filter((id) => next.has(id)));
-        const isAllSelected = subtasks.length > 0 && currentSelection.size === subtasks.length;
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      const currentSelection = new Set(subtaskIds.filter((id) => next.has(id)));
+      const isAllSelected = subtasks.length > 0 && currentSelection.size === subtasks.length;
 
-        if (isAllSelected) {
-          subtaskIds.forEach((id) => next.delete(id));
-        } else {
-          subtaskIds.forEach((id) => next.add(id));
-        }
-        return next;
-      });
-    },
-    [setSelectedIds]
-  );
+      if (isAllSelected) {
+        subtaskIds.forEach((id) => next.delete(id));
+      } else {
+        subtaskIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  }, []);
 
   const getCurrentStatus: () => TaskStatus = useCallback(() => {
     if (tasks.every((task: Task) => task.status === 'DONE')) {
