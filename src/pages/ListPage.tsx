@@ -74,6 +74,7 @@ export default function ListPage() {
           filterStatus={filterStatus}
           filterPriority={filterPriority}
           onAddTask={() => setIsAddDialogOpen(true)}
+          viewMode={viewMode}
         />
       </div>
 

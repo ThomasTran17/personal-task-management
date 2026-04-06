@@ -20,6 +20,7 @@ interface SearchAndFilterProps {
   filterStatus: TaskStatus | 'all';
   filterPriority: TaskPriority | 'all';
   onAddTask: () => void;
+  viewMode?: 'kanban' | 'list';
 }
 
 const STATUS_OPTIONS = [
@@ -44,6 +45,7 @@ export default function SearchAndFilter({
   filterStatus,
   filterPriority,
   onAddTask,
+  viewMode,
 }: SearchAndFilterProps) {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
@@ -127,8 +129,8 @@ export default function SearchAndFilter({
             : 'hidden lg:grid lg:grid-cols-3'
         )}
       >
-        {/* Status Filter - Hidden on Mobile (Tab view handles it) */}
-        <div className="hidden lg:block space-y-2">
+        {/* Status Filter - Hidden on Mobile (Tab view handles it), except in List view */}
+        <div className={cn('space-y-2', viewMode === 'list' ? 'block' : 'hidden lg:block')}>
           <label className="text-sm font-medium">Filter by Status</label>
           <Select
             value={filterStatus}
