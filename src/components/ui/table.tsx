@@ -66,7 +66,7 @@ export function TableHead({ className, ...props }: React.ThHTMLAttributes<HTMLTa
   return (
     <th
       className={cn(
-        'h-12 text-left text-foreground font-weight-base font-base last:rounded-tr-lg',
+        'h-12 text-left text-foreground font-weight-base font-base last:rounded-tr-base',
         CELL_BASE_CLASSES,
         CELL_CHECKBOX_ADJUSTMENT,
         className

@@ -285,7 +285,7 @@ function AddTaskRowComponent({
         />
       )}
 
-      <TableCell colSpan={6} className="ps-0 pe-0 border-b-1">
+      <TableCell colSpan={6} className={cn('ps-0 pe-0 border-b-1', status && 'rounded-br-base')}>
         {isEditing ? (
           <input
             ref={inputRef}
