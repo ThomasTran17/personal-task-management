@@ -229,6 +229,7 @@ export interface TaskAttributes {
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly parentId?: string | null;
+  readonly subtasks?: readonly TaskAttributes[];
 }
 
 /**

@@ -26,11 +26,13 @@ interface UpdateTaskPayload {
 
 /**
  * Helper function to transform TaskAttributes (string dates) to Task (Date objects)
+ * Handles nested subtasks recursively
  * Converts BE TaskResponseDto format to FE Task format
  */
-function transformTaskAttributes(attrs: TaskAttributes, id: string): Task {
-  return {
-    id,
+function transformTaskAttributes(attrs: TaskAttributes & { id?: string }, id?: string): Task {
+  const taskId = id ?? attrs.id! ?? '';
+  const task: Task = {
+    id: taskId,
     title: attrs.title,
     description: attrs.description ?? '',
     status: attrs.status,
@@ -42,6 +44,15 @@ function transformTaskAttributes(attrs: TaskAttributes, id: string): Task {
     createdAt: new Date(attrs.createdAt),
     updatedAt: new Date(attrs.updatedAt),
   };
+
+  // Handle nested subtasks recursively
+  if (attrs.subtasks && Array.isArray(attrs.subtasks)) {
+    task.subtasks = attrs.subtasks.map((subtaskAttrs: TaskAttributes & { id?: string }) =>
+      transformTaskAttributes(subtaskAttrs, subtaskAttrs.id)
+    );
+  }
+
+  return task;
 }
 
 /**
@@ -54,6 +65,7 @@ export const taskApi = baseApi.injectEndpoints({
     /**
      * Get all primary tasks for the current user
      * Transforms JSON:API array response to Task array
+     * Includes nested subtasks from server (backend already loads them)
      */
     getTasks: builder.query<readonly Task[], void>({
       query: () => '/tasks/primary',
@@ -104,6 +116,7 @@ export const taskApi = baseApi.injectEndpoints({
     /**
      * Get single task by ID
      * Transforms JSON:API single resource response to Task
+     * Includes nested subtasks from server
      */
     getTaskById: builder.query<Task, string>({
       query: (id) => `/tasks/${id}`,
@@ -188,7 +201,7 @@ export const taskApi = baseApi.injectEndpoints({
 
     /**
      * Create subtask for a parent task
-     * Invalidates subtasks cache for the parent
+     * Updates parent task's subtasks array in getTasks cache
      */
     addSubtask: builder.mutation<Task, { parentId: string; payload: CreateTaskPayload }>({
       query: ({ parentId, payload }) => ({
@@ -206,32 +219,38 @@ export const taskApi = baseApi.injectEndpoints({
         return transformTaskAttributes(resource.attributes, resource.id);
       },
       invalidatesTags: (result, _error, { parentId }) => [
-        { type: 'Task', id: `SUBTASKS-${parentId}` },
+        // Invalidate parent task to refresh subtasks
+        { type: 'Task', id: parentId },
+        { type: 'Task', id: 'LIST' },
       ],
-      // Optimistic update: add subtask to cache before server response
+      // Optimistic update: add subtask to parent task's subtasks array in getTasks cache
       async onQueryStarted({ parentId, payload }, { dispatch, queryFulfilled }) {
+        // Update getTasks cache to add subtask to parent task
         const patchResult = dispatch(
-          taskApi.util.updateQueryData('getSubtasks', parentId, (draft) => {
-            const newSubtask: Task = {
-              id: `temp-${Date.now()}`,
-              title: payload.title,
-              description: payload.description ?? '',
-              priority: payload.priority,
-              status: payload.status ?? 'TODO',
-              ownerId: '', // Will be updated from server
-              parentId,
-              participantIds: [],
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            };
+          taskApi.util.updateQueryData('getTasks', undefined, (draft) => {
+            const parentTask = draft.find((t) => t.id === parentId);
+            if (parentTask) {
+              const newSubtask: Task = {
+                id: `temp-${Date.now()}`,
+                title: payload.title,
+                description: payload.description ?? '',
+                priority: payload.priority,
+                status: payload.status ?? 'TODO',
+                ownerId: '', // Will be updated from server
+                parentId,
+                participantIds: [],
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              };
 
-            if (payload.dueDate) {
-              newSubtask.dueDate = new Date(payload.dueDate);
+              if (payload.dueDate) {
+                newSubtask.dueDate = new Date(payload.dueDate);
+              }
+
+              parentTask.subtasks ??= [];
+
+              parentTask.subtasks.push(newSubtask);
             }
-
-            // @ts-expect-error - draft is mutable in RTK Query
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-            draft.push(newSubtask);
           })
         );
 
@@ -239,11 +258,13 @@ export const taskApi = baseApi.injectEndpoints({
           const { data } = await queryFulfilled;
           // Update with real ID from server
           dispatch(
-            taskApi.util.updateQueryData('getSubtasks', parentId, (draft) => {
-              const index = draft.findIndex((t) => t.id.startsWith('temp-'));
-              if (index !== -1) {
-                // @ts-expect-error - draft is mutable in RTK Query
-                draft[index] = data;
+            taskApi.util.updateQueryData('getTasks', undefined, (draft) => {
+              const parentTask = draft.find((t) => t.id === parentId);
+              if (parentTask?.subtasks) {
+                const index = parentTask.subtasks.findIndex((t) => t.id.startsWith('temp-'));
+                if (index !== -1) {
+                  parentTask.subtasks[index] = data;
+                }
               }
             })
           );

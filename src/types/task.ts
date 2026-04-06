@@ -10,6 +10,7 @@ export interface Task {
   ownerId: string;
   parentId?: string | null;
   participantIds?: string[];
+  subtasks?: Task[];
 }
 
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE';
