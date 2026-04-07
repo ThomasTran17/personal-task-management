@@ -26,6 +26,7 @@ import {
 } from '@/components/tasks';
 import { getStatusColor as getBorderColor } from '@/components/tasks/task-status-colors';
 import { ParticipantsDisplay } from './ParticipantsDisplay';
+import { StatusDropdown } from './StatusDropdown';
 
 interface TaskListProps {
   tasks: readonly Task[];
@@ -108,6 +109,7 @@ interface SubtaskListProps {
   onUpdateParticipants?: (taskId: string, participantIds: string[]) => void;
   onEditSubtask?: (subtask: Task) => void;
   onDeleteSubtask?: (subtask: Task) => void;
+  onQuickStatusChange?: (taskId: string, status: TaskStatus) => void;
 }
 
 function SubtaskList({
@@ -121,6 +123,7 @@ function SubtaskList({
   onUpdateParticipants,
   onEditSubtask,
   onDeleteSubtask,
+  onQuickStatusChange,
 }: SubtaskListProps) {
   const midIndex = (subtasks.length - 1) >> 1;
   const isSingleSubtask = subtasks.length === 1;
@@ -200,11 +203,12 @@ function SubtaskList({
                 />
               </TableCell>
               <TableCell>
-                <span
-                  className={`inline-block px-2 py-1 rounded text-xs font-medium ${getStatusColor(subtask.status as TaskStatus)}`}
-                >
-                  {getStatusLabel(subtask.status as TaskStatus, true)}
-                </span>
+                <StatusDropdown
+                  status={subtask.status as TaskStatus}
+                  getStatusColor={getStatusColor}
+                  getStatusLabel={getStatusLabel}
+                  onStatusChange={(newStatus) => onQuickStatusChange?.(subtask.id, newStatus)}
+                />
               </TableCell>
               <TableCell>
                 <span
@@ -218,9 +222,9 @@ function SubtaskList({
               </TableCell>
               <TableCell>
                 <span
-                  className={`inline-block px-2 py-1 rounded text-xs font-medium ${getPriorityColor(subtask.priority as TaskPriority)}`}
+                  className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(subtask.priority as TaskPriority)}`}
                 >
-                  {getPriorityLabel(subtask.priority as TaskPriority, true)}
+                  {getPriorityLabel(subtask.priority as TaskPriority)}
                 </span>
               </TableCell>
             </SubtaskTableRow>
@@ -353,6 +357,25 @@ export default function TaskList({
           }).unwrap();
         } catch (error) {
           console.error('Failed to update participants:', error);
+        }
+      })();
+    },
+    [updateTask]
+  );
+
+  // Handle quick status change for task or subtask
+  const handleQuickStatusChange = useCallback(
+    (taskId: string, newStatus: TaskStatus) => {
+      void (async () => {
+        try {
+          await updateTask({
+            id: taskId,
+            updates: {
+              status: newStatus,
+            },
+          }).unwrap();
+        } catch (error) {
+          console.error('Failed to update task status:', error);
         }
       })();
     },
@@ -564,11 +587,14 @@ export default function TaskList({
                               />
                             </TableCell>
                             <TableCell>
-                              <span
-                                className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}
-                              >
-                                {getStatusLabel(task.status)}
-                              </span>
+                              <StatusDropdown
+                                status={task.status}
+                                getStatusColor={getStatusColor}
+                                getStatusLabel={getStatusLabel}
+                                onStatusChange={(newStatus) =>
+                                  handleQuickStatusChange(task.id, newStatus)
+                                }
+                              />
                             </TableCell>
                             <TableCell>
                               <span
@@ -618,6 +644,7 @@ export default function TaskList({
                               onUpdateParticipants={handleUpdateParticipants}
                               onEditSubtask={onEditTask}
                               onDeleteSubtask={onDeleteTask}
+                              onQuickStatusChange={handleQuickStatusChange}
                             />
                           </TableCell>
                         </TableRow>
