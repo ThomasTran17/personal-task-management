@@ -62,12 +62,12 @@ export function ParticipantsDisplay({
   const displayContent = (
     <>
       {selectedParticipants.length === 0 ? (
-        <div className="flex items-center gap-2 cursor-pointer">
+        <div className="flex items-center gap-2.5 cursor-pointer">
           <Plus className="text-gray-400 !size-6" />
           <CircleUser className="text-gray-400 !size-6" />
         </div>
       ) : (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 cursor-pointer">
           <Plus className="text-gray-400 !size-6" />
           <AvatarStack
             avatars={selectedParticipants.map((id) => {

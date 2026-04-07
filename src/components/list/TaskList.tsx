@@ -27,6 +27,7 @@ import {
 import { getStatusColor as getBorderColor } from '@/components/tasks/task-status-colors';
 import { ParticipantsDisplay } from './ParticipantsDisplay';
 import { StatusDropdown } from './StatusDropdown';
+import { PriorityDropdown } from './PriorityDropdown';
 
 interface TaskListProps {
   tasks: readonly Task[];
@@ -110,6 +111,7 @@ interface SubtaskListProps {
   onEditSubtask?: (subtask: Task) => void;
   onDeleteSubtask?: (subtask: Task) => void;
   onQuickStatusChange?: (taskId: string, status: TaskStatus) => void;
+  onQuickPriorityChange?: (taskId: string, priority: TaskPriority) => void;
 }
 
 function SubtaskList({
@@ -124,6 +126,7 @@ function SubtaskList({
   onEditSubtask,
   onDeleteSubtask,
   onQuickStatusChange,
+  onQuickPriorityChange,
 }: SubtaskListProps) {
   const midIndex = (subtasks.length - 1) >> 1;
   const isSingleSubtask = subtasks.length === 1;
@@ -221,11 +224,14 @@ function SubtaskList({
                 </span>
               </TableCell>
               <TableCell>
-                <span
-                  className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(subtask.priority as TaskPriority)}`}
-                >
-                  {getPriorityLabel(subtask.priority as TaskPriority)}
-                </span>
+                <PriorityDropdown
+                  priority={subtask.priority as TaskPriority}
+                  getPriorityColor={getPriorityColor}
+                  getPriorityLabel={getPriorityLabel}
+                  onPriorityChange={(newPriority) =>
+                    onQuickPriorityChange?.(subtask.id, newPriority)
+                  }
+                />
               </TableCell>
             </SubtaskTableRow>
           ))}
@@ -376,6 +382,25 @@ export default function TaskList({
           }).unwrap();
         } catch (error) {
           console.error('Failed to update task status:', error);
+        }
+      })();
+    },
+    [updateTask]
+  );
+
+  // Handle quick priority change for task or subtask
+  const handleQuickPriorityChange = useCallback(
+    (taskId: string, newPriority: TaskPriority) => {
+      void (async () => {
+        try {
+          await updateTask({
+            id: taskId,
+            updates: {
+              priority: newPriority,
+            },
+          }).unwrap();
+        } catch (error) {
+          console.error('Failed to update task priority:', error);
         }
       })();
     },
@@ -609,11 +634,14 @@ export default function TaskList({
                               </span>
                             </TableCell>
                             <TableCell>
-                              <span
-                                className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}
-                              >
-                                {getPriorityLabel(task.priority)}
-                              </span>
+                              <PriorityDropdown
+                                priority={task.priority}
+                                getPriorityColor={getPriorityColor}
+                                getPriorityLabel={getPriorityLabel}
+                                onPriorityChange={(newPriority) =>
+                                  handleQuickPriorityChange(task.id, newPriority)
+                                }
+                              />
                             </TableCell>
                           </>
                         }
@@ -645,6 +673,7 @@ export default function TaskList({
                               onEditSubtask={onEditTask}
                               onDeleteSubtask={onDeleteTask}
                               onQuickStatusChange={handleQuickStatusChange}
+                              onQuickPriorityChange={handleQuickPriorityChange}
                             />
                           </TableCell>
                         </TableRow>
