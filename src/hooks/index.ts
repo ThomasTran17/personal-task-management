@@ -9,3 +9,4 @@ export { useIsMobile } from './use-mobile';
 export { usePeriodicDeadlineCheck } from './usePeriodicDeadlineCheck';
 export { useTitleBadge } from './useTitleBadge';
 export { useTaskInput } from './use-task-input';
+export { useTaskPermission } from './useTaskPermission';

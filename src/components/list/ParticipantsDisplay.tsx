@@ -90,10 +90,6 @@ export function ParticipantsDisplay({
     </>
   );
 
-  if (!isEditable) {
-    return <>{displayContent}</>;
-  }
-
   // Editable version with combobox
   const handleSelectParticipant = (userId: string) => {
     const newParticipants = selectedParticipants.includes(userId)
@@ -127,12 +123,16 @@ export function ParticipantsDisplay({
       <PopoverTrigger
         asChild
         className={cn('bg-transparent', !hasBorder && 'border-none', className)}
+        disabled={!isEditable}
       >
         <Button
           variant="noShadow"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between p-0 no-padding px-2"
+          className={cn(
+            'w-full justify-between p-0 no-padding px-2',
+            !isEditable && 'opacity-50 cursor-not-allowed pointer-events-none'
+          )}
         >
           <div className="flex-1 text-left overflow-hidden text-ellipsis">{displayContent}</div>
           {hasBorder && <ChevronsUpDown size={16} className="ml-2 text-gray-400" />}

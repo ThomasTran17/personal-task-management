@@ -25,4 +25,5 @@ export {
   useGetTaskByIdQuery,
   useGetTasksQuery,
   useUpdateTaskMutation,
+  canUpdateTask,
 } from './taskApi';

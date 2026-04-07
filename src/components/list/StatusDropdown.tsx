@@ -12,6 +12,7 @@ interface StatusDropdownProps {
   getStatusColor: (status: TaskStatus) => string;
   getStatusLabel: (status: TaskStatus) => string;
   onStatusChange: (status: TaskStatus) => void;
+  disabled?: boolean;
 }
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
@@ -25,12 +26,14 @@ export function StatusDropdown({
   getStatusColor,
   getStatusLabel,
   onStatusChange,
+  disabled = false,
 }: StatusDropdownProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          className={`inline-block px-3 py-1 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity ${getStatusColor(status)}`}
+          disabled={disabled}
+          className={`inline-block px-3 py-1 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed ${getStatusColor(status)}`}
         >
           {getStatusLabel(status)}
         </button>
@@ -40,7 +43,7 @@ export function StatusDropdown({
           <DropdownMenuItem
             key={option.value}
             className="bg-background"
-            onClick={() => onStatusChange(option.value)}
+            onClick={() => !disabled && onStatusChange(option.value)}
           >
             {option.label}
           </DropdownMenuItem>

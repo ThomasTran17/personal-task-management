@@ -1,10 +1,16 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Edit2, Trash2 } from 'lucide-react';
-import { useAddTaskMutation, useAddSubtaskMutation, useUpdateTaskMutation } from '@/api';
+import {
+  useAddTaskMutation,
+  useAddSubtaskMutation,
+  useUpdateTaskMutation,
+  canUpdateTask,
+} from '@/api';
 import type { TaskPriority, TaskStatus } from '@/types';
 import type { Task } from '@/types/task';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import type { SerializedError } from '@reduxjs/toolkit';
+import { useGetProfileQuery } from '@/api/services/authApi';
 import { cn, sortTasksByDeadline } from '@/lib';
 import {
   Table,
@@ -115,6 +121,7 @@ interface SubtaskListProps {
   onQuickPriorityChange?: (taskId: string, priority: TaskPriority) => void;
   onQuickDueDateChange?: (taskId: string, dueDate: string | null) => void;
   onSaveSubtaskTitle?: (subtaskId: string, newTitle: string) => void;
+  disabledTaskIds?: Set<string>;
 }
 
 function SubtaskList({
@@ -132,6 +139,7 @@ function SubtaskList({
   onQuickPriorityChange,
   onQuickDueDateChange,
   onSaveSubtaskTitle,
+  disabledTaskIds = new Set(),
 }: SubtaskListProps) {
   const [editingSubtaskId, setEditingSubtaskId] = React.useState<string | null>(null);
   const [editingSubtaskValue, setEditingSubtaskValue] = React.useState('');
@@ -274,7 +282,7 @@ function SubtaskList({
               <TableCell className="text-gray-600 text-sm">
                 <ParticipantsDisplay
                   participantIds={subtask.participantIds}
-                  isEditable={true}
+                  isEditable={!disabledTaskIds.has(subtask.id)}
                   onParticipantsChange={(participantIds) =>
                     onUpdateParticipants?.(subtask.id, participantIds)
                   }
@@ -286,12 +294,14 @@ function SubtaskList({
                   getStatusColor={getStatusColor}
                   getStatusLabel={getStatusLabel}
                   onStatusChange={(newStatus) => onQuickStatusChange?.(subtask.id, newStatus)}
+                  disabled={disabledTaskIds.has(subtask.id)}
                 />
               </TableCell>
               <TableCell>
                 <DueDateDropdown
                   dueDate={subtask.dueDate ?? null}
                   onDueDateChange={(newDueDate) => onQuickDueDateChange?.(subtask.id, newDueDate)}
+                  disabled={disabledTaskIds.has(subtask.id)}
                 />
               </TableCell>
               <TableCell>
@@ -302,6 +312,7 @@ function SubtaskList({
                   onPriorityChange={(newPriority) =>
                     onQuickPriorityChange?.(subtask.id, newPriority)
                   }
+                  disabled={disabledTaskIds.has(subtask.id)}
                 />
               </TableCell>
             </SubtaskTableRow>
@@ -330,6 +341,11 @@ export default function TaskList({
   const [updateTask] = useUpdateTaskMutation();
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Get current user for permission checks
+  // IMPORTANT: This hook must ALWAYS be called, even if we return early
+  const { data: currentUser, isLoading: isLoadingProfile } = useGetProfileQuery();
+  const currentUserId = currentUser?.id ?? '';
 
   // Filter tasks based on search query, status, and priority
   const filteredTasks = useMemo(() => {
@@ -661,169 +677,209 @@ export default function TaskList({
   return (
     <div className="w-full min-h-screen bg-background pb-24">
       <div className="max-w-7xl mx-auto">
-        {/* Loading State */}
-        {isLoading && (
-          <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-            <p className="text-gray-500 text-lg">Loading tasks...</p>
+        {/* Profile Loading State */}
+        {isLoadingProfile && (
+          <div className="w-full min-h-screen bg-background pb-24 flex items-center justify-center">
+            <div className="text-center">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-main"></div>
+              <p className="text-gray-500 text-lg mt-4">Loading permissions...</p>
+            </div>
           </div>
         )}
 
-        {/* Error State */}
-        {error && !isLoading && (
-          <div className="text-center py-12 bg-red-50 rounded-lg border border-red-200">
-            <p className="text-red-600 text-lg">Failed to load tasks. Please try again later.</p>
+        {/* Profile Error State */}
+        {!isLoadingProfile && !currentUser && (
+          <div className="w-full min-h-screen bg-background pb-24 flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-red-600 text-lg">
+                Failed to load user profile. Please refresh the page.
+              </p>
+            </div>
           </div>
         )}
 
-        {/* Task Table */}
-        {!isLoading && !error && filteredAndSortedTasks.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-            <p className="text-gray-500 text-lg">No tasks available</p>
-          </div>
-        ) : !isLoading && !error ? (
-          <div>
-            <Table className="border-l-0">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[5%] ps-0 text-center relative border-l-0 overflow-visible">
-                    <div
-                      className={cn(
-                        getBorderColor(getCurrentStatus()).background,
-                        'absolute -left-[3px] -top-[1px] bottom-0 w-[5px] h-[50px]'
-                      )}
-                    />
-                    <Checkbox
-                      checked={isAllSelected}
-                      onCheckedChange={handleSelectAll}
-                      aria-label="Select all tasks"
-                    />
-                  </TableHead>
-                  <TableHead className="w-[35%]">Title</TableHead>
-                  <TableHead className="w-[20%]">Participants</TableHead>
-                  <TableHead className="w-[12%]">Status</TableHead>
-                  <TableHead className="w-[15%]">Due Date</TableHead>
-                  <TableHead className="w-[13%]">Priority</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredAndSortedTasks.map((task: Task) => {
-                  const subtasksData = task.subtasks ?? [];
-                  const isExpanded = expandedTasks.has(task.id);
-                  const hasSubtasks = subtasksData.length > 0;
+        {/* Main Content (only render if profile loaded successfully) */}
+        {!isLoadingProfile && currentUser && (
+          <>
+            {/* Loading State */}
+            {isLoading && (
+              <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+                <p className="text-gray-500 text-lg">Loading tasks...</p>
+              </div>
+            )}
 
-                  return (
-                    <React.Fragment key={task.id}>
-                      {/* Parent Task Row - Neobrutalism with primary sidebar border */}
-                      <ExpandableTaskRow
-                        hasSubtasks={hasSubtasks}
-                        isExpanded={isExpanded}
-                        onToggleSubtasks={() => toggleExpanded(task.id)}
-                        onAddSubtask={() => handleOpenSubtaskInput(task.id)}
-                        status={task.status}
-                        isSelected={selectedIds.has(task.id)}
-                        onSelectionChange={() => {
-                          const isCurrentlySelected = selectedIds.has(task.id);
-                          handleParentSelectionChange(task.id, !isCurrentlySelected);
-                        }}
-                        titleContent={task.title}
-                        onEditTask={() => onEditTask?.(task)}
-                        onDeleteTask={() => onDeleteTask?.(task)}
-                        onSaveTitle={(newTitle) => handleSaveTaskTitle(task.id, newTitle)}
-                        actionContent={
-                          <>
-                            <TableCell className="text-gray-600 text-sm">
-                              <ParticipantsDisplay
-                                participantIds={task.participantIds}
-                                isEditable={true}
-                                onParticipantsChange={(participantIds) =>
-                                  handleUpdateParticipants(task.id, participantIds)
-                                }
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <StatusDropdown
-                                status={task.status}
-                                getStatusColor={getStatusColor}
-                                getStatusLabel={getStatusLabel}
-                                onStatusChange={(newStatus) =>
-                                  handleQuickStatusChange(task.id, newStatus)
-                                }
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <DueDateDropdown
-                                dueDate={task.dueDate ?? null}
-                                onDueDateChange={(newDueDate) =>
-                                  handleQuickDueDateChange(task.id, newDueDate)
-                                }
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <PriorityDropdown
-                                priority={task.priority}
-                                getPriorityColor={getPriorityColor}
-                                getPriorityLabel={getPriorityLabel}
-                                onPriorityChange={(newPriority) =>
-                                  handleQuickPriorityChange(task.id, newPriority)
-                                }
-                              />
-                            </TableCell>
-                          </>
-                        }
-                      />
+            {/* Error State */}
+            {error && !isLoading && (
+              <div className="text-center py-12 bg-red-50 rounded-lg border border-red-200">
+                <p className="text-red-600 text-lg">
+                  Failed to load tasks. Please try again later.
+                </p>
+              </div>
+            )}
 
-                      {/* Subtasks Container - L-shaped visual connectors */}
-                      {isExpanded && (
-                        <TableRow className={'border-b-0 border-l-1 p-0'}>
-                          <TableCell
-                            colSpan={7}
-                            className={cn(
-                              'p-0 border-r-0',
-                              getStatusBorderColors(task.status).borderLeft
-                            )}
-                          >
-                            <SubtaskList
-                              subtasks={subtasksData}
-                              parentTaskStatus={task.status}
-                              _parentTaskId={task.id}
-                              onAddSubtask={(title: string) => handleAddSubtask(task.id, title)}
-                              selectedIds={selectedIds}
-                              onSubtaskToggle={(subtaskId: string) =>
-                                handleSubtaskToggle(task.id, subtaskId)
-                              }
-                              onSelectAllSubtasks={() =>
-                                handleSelectAllSubtasks(task.id, subtasksData)
-                              }
-                              onUpdateParticipants={handleUpdateParticipants}
-                              onEditSubtask={onEditTask}
-                              onDeleteSubtask={onDeleteTask}
-                              onQuickStatusChange={handleQuickStatusChange}
-                              onQuickPriorityChange={handleQuickPriorityChange}
-                              onQuickDueDateChange={handleQuickDueDateChange}
-                              onSaveSubtaskTitle={handleSaveSubtaskTitle}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-                <AddTaskRow onAddTask={handleAddTask} status={getCurrentStatus()}>
-                  + Add Task
-                </AddTaskRow>
-              </TableBody>
-            </Table>
-          </div>
-        ) : null}
+            {/* Task Table */}
+            {!isLoading && !error && filteredAndSortedTasks.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+                <p className="text-gray-500 text-lg">No tasks available</p>
+              </div>
+            ) : !isLoading && !error ? (
+              <div>
+                <Table className="border-l-0">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[5%] ps-0 text-center relative border-l-0 overflow-visible">
+                        <div
+                          className={cn(
+                            getBorderColor(getCurrentStatus()).background,
+                            'absolute -left-[3px] -top-[1px] bottom-0 w-[5px] h-[50px]'
+                          )}
+                        />
+                        <Checkbox
+                          checked={isAllSelected}
+                          onCheckedChange={handleSelectAll}
+                          aria-label="Select all tasks"
+                        />
+                      </TableHead>
+                      <TableHead className="w-[35%]">Title</TableHead>
+                      <TableHead className="w-[20%]">Participants</TableHead>
+                      <TableHead className="w-[12%]">Status</TableHead>
+                      <TableHead className="w-[15%]">Due Date</TableHead>
+                      <TableHead className="w-[13%]">Priority</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredAndSortedTasks.map((task: Task) => {
+                      const subtasksData = task.subtasks ?? [];
+                      const isExpanded = expandedTasks.has(task.id);
+                      const hasSubtasks = subtasksData.length > 0;
+                      // currentUserId is guaranteed to be defined (checked above)
+                      const canUpdateCurrentTask = canUpdateTask(task, currentUserId);
 
-        {/* Bulk Actions Bar */}
-        <BulkActions
-          selectedCount={selectedIds.size}
-          onDelete={handleBulkDelete}
-          onStatusChange={handleBulkStatusChange}
-          onPriorityChange={handleBulkPriorityChange}
-          onClearSelection={handleClearSelection}
-        />
+                      return (
+                        <React.Fragment key={task.id}>
+                          {/* Parent Task Row - Neobrutalism with primary sidebar border */}
+                          <ExpandableTaskRow
+                            hasSubtasks={hasSubtasks}
+                            isExpanded={isExpanded}
+                            onToggleSubtasks={() => toggleExpanded(task.id)}
+                            onAddSubtask={() => handleOpenSubtaskInput(task.id)}
+                            status={task.status}
+                            isSelected={selectedIds.has(task.id)}
+                            onSelectionChange={() => {
+                              const isCurrentlySelected = selectedIds.has(task.id);
+                              handleParentSelectionChange(task.id, !isCurrentlySelected);
+                            }}
+                            titleContent={task.title}
+                            onEditTask={() => onEditTask?.(task)}
+                            onDeleteTask={() => onDeleteTask?.(task)}
+                            onSaveTitle={(newTitle) => handleSaveTaskTitle(task.id, newTitle)}
+                            actionContent={
+                              <>
+                                <TableCell className="text-gray-600 text-sm">
+                                  <ParticipantsDisplay
+                                    participantIds={task.participantIds}
+                                    isEditable={canUpdateCurrentTask}
+                                    onParticipantsChange={(participantIds) =>
+                                      handleUpdateParticipants(task.id, participantIds)
+                                    }
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <StatusDropdown
+                                    status={task.status}
+                                    getStatusColor={getStatusColor}
+                                    getStatusLabel={getStatusLabel}
+                                    onStatusChange={(newStatus) =>
+                                      handleQuickStatusChange(task.id, newStatus)
+                                    }
+                                    disabled={!canUpdateCurrentTask}
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <DueDateDropdown
+                                    dueDate={task.dueDate ?? null}
+                                    onDueDateChange={(newDueDate) =>
+                                      handleQuickDueDateChange(task.id, newDueDate)
+                                    }
+                                    disabled={!canUpdateCurrentTask}
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <PriorityDropdown
+                                    priority={task.priority}
+                                    getPriorityColor={getPriorityColor}
+                                    getPriorityLabel={getPriorityLabel}
+                                    onPriorityChange={(newPriority) =>
+                                      handleQuickPriorityChange(task.id, newPriority)
+                                    }
+                                    disabled={!canUpdateCurrentTask}
+                                  />
+                                </TableCell>
+                              </>
+                            }
+                          />
+
+                          {/* Subtasks Container - L-shaped visual connectors */}
+                          {isExpanded && (
+                            <TableRow className={'border-b-0 border-l-1 p-0'}>
+                              <TableCell
+                                colSpan={7}
+                                className={cn(
+                                  'p-0 border-r-0',
+                                  getStatusBorderColors(task.status).borderLeft
+                                )}
+                              >
+                                <SubtaskList
+                                  subtasks={subtasksData}
+                                  parentTaskStatus={task.status}
+                                  _parentTaskId={task.id}
+                                  onAddSubtask={(title: string) => handleAddSubtask(task.id, title)}
+                                  selectedIds={selectedIds}
+                                  onSubtaskToggle={(subtaskId: string) =>
+                                    handleSubtaskToggle(task.id, subtaskId)
+                                  }
+                                  onSelectAllSubtasks={() =>
+                                    handleSelectAllSubtasks(task.id, subtasksData)
+                                  }
+                                  onUpdateParticipants={handleUpdateParticipants}
+                                  onEditSubtask={onEditTask}
+                                  onDeleteSubtask={onDeleteTask}
+                                  onQuickStatusChange={handleQuickStatusChange}
+                                  onQuickPriorityChange={handleQuickPriorityChange}
+                                  onQuickDueDateChange={handleQuickDueDateChange}
+                                  onSaveSubtaskTitle={handleSaveSubtaskTitle}
+                                  disabledTaskIds={
+                                    new Set(
+                                      subtasksData
+                                        .filter((st) => !canUpdateTask(st, currentUserId))
+                                        .map((st) => st.id)
+                                    )
+                                  }
+                                />
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                    <AddTaskRow onAddTask={handleAddTask} status={getCurrentStatus()}>
+                      + Add Task
+                    </AddTaskRow>
+                  </TableBody>
+                </Table>
+              </div>
+            ) : null}
+
+            {/* Bulk Actions Bar */}
+            <BulkActions
+              selectedCount={selectedIds.size}
+              onDelete={handleBulkDelete}
+              onStatusChange={handleBulkStatusChange}
+              onPriorityChange={handleBulkPriorityChange}
+              onClearSelection={handleClearSelection}
+            />
+          </>
+        )}
       </div>
     </div>
   );

@@ -140,6 +140,7 @@ export const authApi = baseApi.injectEndpoints({
 
     /**
      * Get current user profile endpoint
+     * Returns user profile data without accessToken
      * @query
      */
     getProfile: builder.query<UserWithAttributes, void>({
@@ -153,10 +154,19 @@ export const authApi = baseApi.injectEndpoints({
           throw new Error('Profile response should contain single user resource');
         }
 
+        // Response is JSON:API format: { data: { type, id, attributes } }
         const resource = response.data as JsonApiResource<UserAttributes>;
+
+        // Convert date strings to Date objects if needed
+        const attrs = resource.attributes as unknown as Record<string, unknown>;
         const userWithAttrs: UserWithAttributes = {
           id: resource.id,
-          ...resource.attributes,
+          email: attrs.email as string,
+          firstName: attrs.firstName as string,
+          lastName: attrs.lastName as string,
+          avatar: attrs.avatar as string | undefined,
+          createdAt: attrs.createdAt ? new Date(attrs.createdAt as string | Date) : undefined,
+          updatedAt: attrs.updatedAt ? new Date(attrs.updatedAt as string | Date) : undefined,
         };
 
         return userWithAttrs;
@@ -267,7 +277,7 @@ export const authApi = baseApi.injectEndpoints({
           email: resource.attributes.email,
           firstName: resource.attributes.firstName ?? '',
           lastName: resource.attributes.lastName ?? '',
-          avatar: resource.attributes.photoUrl,
+          avatar: resource.attributes.avatar,
           createdAt: resource.attributes.createdAt
             ? new Date(resource.attributes.createdAt)
             : undefined,

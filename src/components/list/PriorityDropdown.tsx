@@ -11,6 +11,7 @@ interface PriorityDropdownProps {
   getPriorityColor: (priority: TaskPriority) => string;
   getPriorityLabel: (priority: TaskPriority) => string;
   onPriorityChange: (priority: TaskPriority) => void;
+  disabled?: boolean;
 }
 
 const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
@@ -24,12 +25,14 @@ export function PriorityDropdown({
   getPriorityColor,
   getPriorityLabel,
   onPriorityChange,
+  disabled = false,
 }: PriorityDropdownProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          className={`inline-block px-3 py-1 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity ${getPriorityColor(priority)}`}
+          disabled={disabled}
+          className={`inline-block px-3 py-1 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed ${getPriorityColor(priority)}`}
         >
           {getPriorityLabel(priority)}
         </button>
@@ -39,7 +42,7 @@ export function PriorityDropdown({
           <DropdownMenuItem
             key={option.value}
             className="bg-background"
-            onClick={() => onPriorityChange(option.value)}
+            onClick={() => !disabled && onPriorityChange(option.value)}
           >
             {option.label}
           </DropdownMenuItem>

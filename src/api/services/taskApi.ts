@@ -28,6 +28,16 @@ interface UpdateTaskPayload {
 }
 
 /**
+ * Helper function to check if user has permission to update a task
+ * Only owner and participants can update the task
+ */
+function canUpdateTask(task: Task, userId: string): boolean {
+  const isOwner = task.ownerId === userId;
+  const isParticipant = task.participantIds?.includes(userId) ?? false;
+  return isOwner || isParticipant;
+}
+
+/**
  * Helper function to map TaskAttributes (API response) to Task (Redux store)
  * Keeps dates as ISO strings (no conversion to Date objects)
  * Handles nested subtasks recursively
@@ -72,7 +82,7 @@ export const taskApi = baseApi.injectEndpoints({
      * Includes nested subtasks from server (backend already loads them)
      */
     getTasks: builder.query<readonly Task[], void>({
-      query: () => '/tasks/primary',
+      query: () => '/tasks/all',
       transformResponse: (response: JsonApiResponse<TaskAttributes>): readonly Task[] => {
         // Handle array of resources
         if (!Array.isArray(response.data)) {
@@ -283,6 +293,8 @@ export const taskApi = baseApi.injectEndpoints({
 
     /**
      * Update task
+     * Only owner and participants can update the task
+     * Backend validates permission and returns 403 if denied
      * Invalidates specific task and list cache
      */
     updateTask: builder.mutation<Task, { id: string; updates: UpdateTaskPayload }>({
@@ -371,6 +383,12 @@ export const taskApi = baseApi.injectEndpoints({
 });
 
 // Export auto-generated hooks
+/**
+ * Note on permission checks:
+ * - Backend validates all permissions (owner/participant for update operations)
+ * - Frontend can use the canUpdateTask helper for UI visibility
+ * - Backend returns 403 Forbidden if user lacks permission
+ */
 export const {
   useGetTasksQuery,
   useGetSubtasksQuery,
@@ -382,3 +400,6 @@ export const {
   useDeleteAllTasksMutation,
   util: { resetApiState },
 } = taskApi;
+
+// Export helper functions for permission checks
+export { canUpdateTask };

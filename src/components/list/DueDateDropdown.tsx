@@ -12,6 +12,7 @@ import DatePicker from '@/components/ui/date-picker';
 interface DueDateDropdownProps {
   dueDate: string | null;
   onDueDateChange: (date: string | null) => void;
+  disabled?: boolean;
 }
 
 const QUICK_DATE_OPTIONS = [
@@ -22,7 +23,11 @@ const QUICK_DATE_OPTIONS = [
   { label: 'Clear', value: null },
 ];
 
-export function DueDateDropdown({ dueDate, onDueDateChange }: DueDateDropdownProps) {
+export function DueDateDropdown({
+  dueDate,
+  onDueDateChange,
+  disabled = false,
+}: DueDateDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const getQuickDate = (days: number): string => {
@@ -34,6 +39,7 @@ export function DueDateDropdown({ dueDate, onDueDateChange }: DueDateDropdownPro
   };
 
   const handleQuickDateClick = (option: (typeof QUICK_DATE_OPTIONS)[0]) => {
+    if (disabled) return;
     if (option.value === null) {
       onDueDateChange(null);
     } else {
@@ -46,11 +52,12 @@ export function DueDateDropdown({ dueDate, onDueDateChange }: DueDateDropdownPro
   const isOverdue = dueDate ? isDateOverdue(dueDate) : false;
 
   return (
-    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+    <DropdownMenu open={isOpen && !disabled} onOpenChange={disabled ? undefined : setIsOpen}>
       <DropdownMenuTrigger asChild>
         <button
+          disabled={disabled}
           className={cn(
-            'inline-block text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity',
+            'inline-block text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed',
             isOverdue ? 'text-red-600 font-semibold' : 'text-gray-700'
           )}
         >
@@ -71,19 +78,21 @@ export function DueDateDropdown({ dueDate, onDueDateChange }: DueDateDropdownPro
           </DropdownMenuItem>
         ))}
         <div className="border-t my-1" />
-        <DatePicker
-          className="w-full bg-background border-0 p-2 pointer-cursor"
-          value={dueDate}
-          onDateChange={(date: string | null, isTimeChange?: boolean) => {
-            if (date) {
-              onDueDateChange(date);
-              if (!isTimeChange) {
-                setIsOpen(false);
+        <div className={disabled ? 'opacity-50 pointer-events-none' : ''}>
+          <DatePicker
+            className="w-full bg-background border-0 p-2 pointer-cursor"
+            value={dueDate}
+            onDateChange={(date: string | null, isTimeChange?: boolean) => {
+              if (date && !disabled) {
+                onDueDateChange(date);
+                if (!isTimeChange) {
+                  setIsOpen(false);
+                }
               }
-            }
-          }}
-          withTime={true}
-        />
+            }}
+            withTime={true}
+          />
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );
