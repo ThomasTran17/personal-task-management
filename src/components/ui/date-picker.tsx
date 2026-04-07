@@ -7,7 +7,7 @@ import { Button, Calendar, Input, Popover, PopoverContent, PopoverTrigger } from
 
 interface DatePickerProps {
   value?: string | null;
-  onDateChange: (date: string | null) => void;
+  onDateChange: (date: string | null, isTimeChange?: boolean) => void;
   placeholder?: string;
   className?: string;
   withTime?: boolean;
@@ -40,7 +40,7 @@ export default function DatePicker({
       date.setHours(hours_num, minutes_num, 0, 0);
     }
 
-    onDateChange(date.toISOString());
+    onDateChange(date.toISOString(), false);
   };
 
   const handleHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,7 +61,7 @@ export default function DatePicker({
       const minutes_num = parseInt(minutes) || 0;
       const newDate = new Date(valueDate);
       newDate.setHours(hours_num, minutes_num, 0, 0);
-      onDateChange(newDate.toISOString());
+      onDateChange(newDate.toISOString(), true);
     }
   };
 
@@ -83,7 +83,7 @@ export default function DatePicker({
       const minutes_num = parseInt(newMinutes) || 0;
       const newDate = new Date(valueDate);
       newDate.setHours(hours_num, minutes_num, 0, 0);
-      onDateChange(newDate.toISOString());
+      onDateChange(newDate.toISOString(), true);
     }
   };
 

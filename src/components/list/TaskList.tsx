@@ -5,7 +5,7 @@ import type { TaskPriority, TaskStatus } from '@/types';
 import type { Task } from '@/types/task';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import type { SerializedError } from '@reduxjs/toolkit';
-import { cn, sortTasksByDeadline, formatISODateString, isDateOverdue } from '@/lib';
+import { cn, sortTasksByDeadline } from '@/lib';
 import {
   Table,
   TableBody,
@@ -28,6 +28,7 @@ import { getStatusColor as getBorderColor } from '@/components/tasks/task-status
 import { ParticipantsDisplay } from './ParticipantsDisplay';
 import { StatusDropdown } from './StatusDropdown';
 import { PriorityDropdown } from './PriorityDropdown';
+import { DueDateDropdown } from './DueDateDropdown';
 
 interface TaskListProps {
   tasks: readonly Task[];
@@ -112,6 +113,7 @@ interface SubtaskListProps {
   onDeleteSubtask?: (subtask: Task) => void;
   onQuickStatusChange?: (taskId: string, status: TaskStatus) => void;
   onQuickPriorityChange?: (taskId: string, priority: TaskPriority) => void;
+  onQuickDueDateChange?: (taskId: string, dueDate: string | null) => void;
 }
 
 function SubtaskList({
@@ -127,6 +129,7 @@ function SubtaskList({
   onDeleteSubtask,
   onQuickStatusChange,
   onQuickPriorityChange,
+  onQuickDueDateChange,
 }: SubtaskListProps) {
   const midIndex = (subtasks.length - 1) >> 1;
   const isSingleSubtask = subtasks.length === 1;
@@ -214,14 +217,10 @@ function SubtaskList({
                 />
               </TableCell>
               <TableCell>
-                <span
-                  className={cn(
-                    'inline-block text-xs font-medium',
-                    isDateOverdue(subtask.dueDate) && 'text-red-600 font-semibold'
-                  )}
-                >
-                  {subtask.dueDate ? formatISODateString(subtask.dueDate, 'dd/mm/yyyy') : '-'}
-                </span>
+                <DueDateDropdown
+                  dueDate={subtask.dueDate ?? null}
+                  onDueDateChange={(newDueDate) => onQuickDueDateChange?.(subtask.id, newDueDate)}
+                />
               </TableCell>
               <TableCell>
                 <PriorityDropdown
@@ -401,6 +400,25 @@ export default function TaskList({
           }).unwrap();
         } catch (error) {
           console.error('Failed to update task priority:', error);
+        }
+      })();
+    },
+    [updateTask]
+  );
+
+  // Handle quick due date change for task or subtask
+  const handleQuickDueDateChange = useCallback(
+    (taskId: string, newDueDate: string | null) => {
+      void (async () => {
+        try {
+          await updateTask({
+            id: taskId,
+            updates: {
+              dueDate: newDueDate ?? null,
+            },
+          }).unwrap();
+        } catch (error) {
+          console.error('Failed to update task due date:', error);
         }
       })();
     },
@@ -622,16 +640,12 @@ export default function TaskList({
                               />
                             </TableCell>
                             <TableCell>
-                              <span
-                                className={cn(
-                                  'inline-block text-sm font-medium',
-                                  isDateOverdue(task.dueDate) && 'text-red-600 font-semibold'
-                                )}
-                              >
-                                {task.dueDate
-                                  ? formatISODateString(task.dueDate, 'dd/mm/yyyy')
-                                  : '-'}
-                              </span>
+                              <DueDateDropdown
+                                dueDate={task.dueDate ?? null}
+                                onDueDateChange={(newDueDate) =>
+                                  handleQuickDueDateChange(task.id, newDueDate)
+                                }
+                              />
                             </TableCell>
                             <TableCell>
                               <PriorityDropdown
@@ -674,6 +688,7 @@ export default function TaskList({
                               onDeleteSubtask={onDeleteTask}
                               onQuickStatusChange={handleQuickStatusChange}
                               onQuickPriorityChange={handleQuickPriorityChange}
+                              onQuickDueDateChange={handleQuickDueDateChange}
                             />
                           </TableCell>
                         </TableRow>
