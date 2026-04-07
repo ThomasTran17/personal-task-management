@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import { Edit2, Trash2 } from 'lucide-react';
 import { useAddTaskMutation, useAddSubtaskMutation, useUpdateTaskMutation } from '@/api';
 import type { TaskPriority, TaskStatus } from '@/types';
 import type { Task } from '@/types/task';
@@ -105,6 +106,8 @@ interface SubtaskListProps {
   onSubtaskToggle: (subtaskId: string) => void;
   onSelectAllSubtasks: () => void;
   onUpdateParticipants?: (taskId: string, participantIds: string[]) => void;
+  onEditSubtask?: (subtask: Task) => void;
+  onDeleteSubtask?: (subtask: Task) => void;
 }
 
 function SubtaskList({
@@ -116,6 +119,8 @@ function SubtaskList({
   onSubtaskToggle,
   onSelectAllSubtasks,
   onUpdateParticipants,
+  onEditSubtask,
+  onDeleteSubtask,
 }: SubtaskListProps) {
   const midIndex = (subtasks.length - 1) >> 1;
   const isSingleSubtask = subtasks.length === 1;
@@ -162,7 +167,29 @@ function SubtaskList({
               isSelected={selectedIds.has(subtask.id)}
               onSelectionChange={() => onSubtaskToggle(subtask.id)}
             >
-              <TableCell className="text-sm">{subtask.title}</TableCell>
+              <TableCell className="text-sm">
+                <div className="flex items-center justify-start gap-2 group">
+                  <span className="truncate">{subtask.title}</span>
+                  <div className="lg:hidden group-hover:block flex items-center gap-2">
+                    <button
+                      onClick={() => onEditSubtask?.(subtask)}
+                      className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-colors"
+                      title="Edit subtask"
+                      aria-label="Edit subtask"
+                    >
+                      <Edit2 className="size-4" />
+                    </button>
+                    <button
+                      onClick={() => onDeleteSubtask?.(subtask)}
+                      className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-colors"
+                      title="Delete subtask"
+                      aria-label="Delete subtask"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                </div>
+              </TableCell>
               <TableCell className="text-gray-600 text-sm">
                 <ParticipantsDisplay
                   participantIds={subtask.participantIds}
@@ -522,9 +549,7 @@ export default function TaskList({
                           const isCurrentlySelected = selectedIds.has(task.id);
                           handleParentSelectionChange(task.id, !isCurrentlySelected);
                         }}
-                        titleContent={
-                          <span className="font-semibold text-gray-900">{task.title}</span>
-                        }
+                        titleContent={task.title}
                         onEditTask={() => onEditTask?.(task)}
                         onDeleteTask={() => onDeleteTask?.(task)}
                         actionContent={
@@ -591,6 +616,8 @@ export default function TaskList({
                                 handleSelectAllSubtasks(task.id, subtasksData)
                               }
                               onUpdateParticipants={handleUpdateParticipants}
+                              onEditSubtask={onEditTask}
+                              onDeleteSubtask={onDeleteTask}
                             />
                           </TableCell>
                         </TableRow>

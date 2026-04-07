@@ -147,7 +147,7 @@ function ExpandableTaskRowComponent({
           )}
         />
         <div className="flex items-center gap-2 justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center flex-start gap-2 truncate">
             {hasSubtasks && (
               <button
                 onClick={() => onToggleSubtasks?.(!isExpanded)}
@@ -159,9 +159,9 @@ function ExpandableTaskRowComponent({
                 <ChevronDown className="size-4" />
               </button>
             )}
-            {titleContent}
+            <div className="truncate">{titleContent}</div>
 
-            <div className="hidden group-hover:block">
+            <div className="lg:hidden group-hover:block">
               {onEditTask && (
                 <button
                   onClick={onEditTask}
