@@ -38,7 +38,7 @@ function SubtaskTableRowComponent({
     >
       <td
         className={cn(
-          'align-middle truncate max-w-0 border-r-5 relative',
+          'align-middle truncate max-w-0 border-r-5 relative bg-background',
           getStatusColor(status).borderRight
         )}
       >
@@ -77,7 +77,7 @@ type SubtaskContainerProps = React.HTMLAttributes<HTMLDivElement>;
 
 function SubtaskContainerComponent({ className, children, ...props }: SubtaskContainerProps) {
   return (
-    <div className={cn('py-6', className)} {...props}>
+    <div className={cn('py-6 bg-background', className)} {...props}>
       {children}
     </div>
   );
@@ -279,7 +279,7 @@ function AddTaskRowComponent({
       {parentStatus && (
         <td
           className={cn(
-            'ps-4 pe-4 py-2 align-middle truncate max-w-0 border-r-5',
+            'ps-4 pe-4 py-2 align-middle truncate max-w-0 border-r-5 bg-background',
             getStatusColor(parentStatus).borderRight
           )}
         />

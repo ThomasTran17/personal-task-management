@@ -122,13 +122,13 @@ function SubtaskList({
 
   return (
     <SubtaskContainer>
-      <table className="w-full border-separate border-spacing-0 table-fixed">
+      <table className="w-full border-separate border-spacing-0 table-fixed bg-secondary-background">
         <SubtaskTableHeader parentStatus={parentTaskStatus}>
           <TableRow>
             <TableHead
               className={cn(
                 'align-middle',
-                'border-r-5 first:border-l-0 first:border-t-0',
+                'border-r-5 first:border-l-0 first:border-t-0 bg-background',
                 'p-0',
                 getStatusBorderColors(parentTaskStatus).borderRight,
                 'w-[5%]'
