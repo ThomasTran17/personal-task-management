@@ -13,6 +13,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { useGetUsersQuery } from '@/api';
+import { AvatarDisplay, AvatarStack } from '@/components/shared';
 import type { UserResponseDto } from '@/api';
 
 interface ParticipantsDisplayProps {
@@ -66,20 +67,24 @@ export function ParticipantsDisplay({
           <CircleUser size={60} className="text-gray-400" />
         </div>
       ) : (
-        <span className="text-gray-700 text-sm cursor-pointer">
-          {selectedParticipants.slice(0, maxDisplay).map((id, index) => (
-            <React.Fragment key={id}>
-              {index > 0 && ', '}
-              <span className="font-medium">@{id}</span>
-            </React.Fragment>
-          ))}
-          {Math.max(0, selectedParticipants.length - maxDisplay) > 0 && (
-            <span className="text-gray-500">
-              {' '}
-              +{Math.max(0, selectedParticipants.length - maxDisplay)}
-            </span>
-          )}
-        </span>
+        <div className="flex items-center gap-2">
+          <Plus size={60} className="text-gray-400" />
+
+          <AvatarStack
+            avatars={selectedParticipants.map((id) => {
+              const user = users.find((u) => u.id === id);
+              const fullName = user ? `${user.firstName} ${user.lastName}`.trim() : '';
+              const displayName = fullName || (user?.email ?? id);
+              return {
+                id,
+                avatarUrl: user?.avatar,
+                name: displayName,
+              };
+            })}
+            maxDisplay={maxDisplay}
+            size={24}
+          />
+        </div>
       )}
     </>
   );
@@ -141,7 +146,14 @@ export function ParticipantsDisplay({
                   value={user.id}
                   onSelect={() => handleSelectParticipant(user.id)}
                 >
-                  {getUserDisplayName(user)}
+                  <div className="flex items-center gap-2 w-full">
+                    <AvatarDisplay
+                      avatarUrl={user.avatar}
+                      name={getUserDisplayName(user)}
+                      size={28}
+                    />
+                    <span>{getUserDisplayName(user)}</span>
+                  </div>
                   <CheckIcon
                     className={cn(
                       'ml-auto',
