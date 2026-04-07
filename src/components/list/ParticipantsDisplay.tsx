@@ -22,6 +22,7 @@ interface ParticipantsDisplayProps {
   onParticipantsChange?: (participantIds: string[]) => void;
   isEditable?: boolean;
   hasBorder?: boolean;
+  className?: string;
 }
 
 /**
@@ -44,6 +45,7 @@ export function ParticipantsDisplay({
   onParticipantsChange,
   isEditable = false,
   hasBorder = false,
+  className = '',
 }: ParticipantsDisplayProps) {
   const [open, setOpen] = useState(false);
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>(participantIds);
@@ -122,12 +124,15 @@ export function ParticipantsDisplay({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild className={cn('bg-transparent', !hasBorder && 'border-none')}>
+      <PopoverTrigger
+        asChild
+        className={cn('bg-transparent', !hasBorder && 'border-none', className)}
+      >
         <Button
           variant="noShadow"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between md:max-w-[300px] p-0 no-padding px-2"
+          className="w-full justify-between p-0 no-padding px-2"
         >
           <div className="flex-1 text-left overflow-hidden text-ellipsis">{displayContent}</div>
           {hasBorder && <ChevronsUpDown size={16} className="ml-2 text-gray-400" />}

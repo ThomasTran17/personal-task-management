@@ -119,7 +119,7 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[50vw] sm:max-h-[95vh] overflow-auto [&::-webkit-scrollbar]:!w-0">
         <DialogHeader>
           <DialogTitle>Edit Task</DialogTitle>
         </DialogHeader>
@@ -143,6 +143,75 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
             )}
           </div>
 
+          {/* Status and Priority - Same Parent */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Status Select */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Status</label>
+              <Select value={status} onValueChange={(value) => setStatus(value as TaskStatus)}>
+                <SelectTrigger className="bg-main-light">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map(({ value, label }) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Priority Select */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Priority</label>
+              <Select
+                value={priority}
+                onValueChange={(value) => setPriority(value as TaskPriority)}
+              >
+                <SelectTrigger className="bg-main-light">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRIORITY_OPTIONS.map(({ value, label }) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Deadline and Participants - Same Parent */}
+          <div className="flex flex-row justify-between gap-4">
+            {/* Due Date Input */}
+            <div className="w-[60%] flex flex-col">
+              <label className="text-sm font-medium">Deadline</label>
+              <DatePicker
+                value={dueDate}
+                onDateChange={setDueDate}
+                placeholder="Select deadline date and time"
+                withTime={true}
+                className="bg-background"
+                side="right"
+                align="center"
+                sideOffset={-200}
+              />
+            </div>
+
+            {/* Participants Select */}
+            <div className="w-[40%] flex flex-col">
+              <label className="text-sm font-medium">Participants</label>
+              <ParticipantsDisplay
+                participantIds={participantIds}
+                onParticipantsChange={setParticipantIds}
+                isEditable={true}
+                hasBorder={true}
+              />
+            </div>
+          </div>
+
           {/* Description Input */}
           <div className="space-y-2">
             <label className="text-sm font-medium">Description</label>
@@ -159,62 +228,6 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
             {touched.description && errors.description && (
               <p className="text-sm text-red-500 font-medium">{errors.description}</p>
             )}
-          </div>
-
-          {/* Status Select */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Status</label>
-            <Select value={status} onValueChange={(value) => setStatus(value as TaskStatus)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map(({ value, label }) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Due Date Input */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Deadline</label>
-            <DatePicker
-              value={dueDate}
-              onDateChange={setDueDate}
-              placeholder="Select deadline date and time"
-              withTime={true}
-            />
-          </div>
-
-          {/* Priority Select */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Priority</label>
-            <Select value={priority} onValueChange={(value) => setPriority(value as TaskPriority)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PRIORITY_OPTIONS.map(({ value, label }) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Participants Select */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Participants</label>
-            <ParticipantsDisplay
-              participantIds={participantIds}
-              onParticipantsChange={setParticipantIds}
-              isEditable={true}
-              hasBorder={true}
-            />
           </div>
 
           {/* Dialog Footer */}

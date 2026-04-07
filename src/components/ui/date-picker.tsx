@@ -11,6 +11,9 @@ interface DatePickerProps {
   placeholder?: string;
   className?: string;
   withTime?: boolean;
+  side?: 'top' | 'bottom' | 'left' | 'right';
+  align?: 'start' | 'center' | 'end';
+  sideOffset?: number;
 }
 
 export default function DatePicker({
@@ -19,6 +22,9 @@ export default function DatePicker({
   placeholder = 'Pick a date',
   className = 'w-full',
   withTime = false,
+  side = 'left',
+  align = 'center',
+  sideOffset,
 }: DatePickerProps) {
   const valueDate = value ? new Date(value) : null;
   const [hours, setHours] = React.useState<string>(
@@ -90,7 +96,10 @@ export default function DatePicker({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="noShadow" className={`justify-start text-left font-base ${className}`}>
+        <Button
+          variant="noShadow"
+          className={`justify-start text-left font-base truncate ${className}`}
+        >
           <CalendarIcon className="size-4 mr-2" />
           {valueDate ? (
             format(valueDate, withTime ? 'MMM dd, yyyy HH:mm' : 'MMM dd, yyyy')
@@ -99,7 +108,12 @@ export default function DatePicker({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto border-0! p-4">
+      <PopoverContent
+        className="w-auto border-0 p-4"
+        side={side}
+        align={align}
+        sideOffset={sideOffset}
+      >
         <div className="space-y-4">
           <Calendar
             mode="single"
