@@ -21,6 +21,7 @@ import {
 import { useGetTasksQuery, useDeleteTaskMutation } from '@/api';
 import { Grid3x3, List } from 'lucide-react';
 import type { TaskStatus, TaskPriority, Task } from '@/types';
+import { useSearchParams } from 'react-router-dom';
 
 type ViewMode = 'kanban' | 'list';
 
@@ -38,7 +39,8 @@ export default function ListPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<TaskStatus | 'all'>('all');
   const [filterPriority, setFilterPriority] = useState<TaskPriority | 'all'>('all');
-  const [viewMode, setViewMode] = useState<ViewMode>('kanban');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const viewMode = (searchParams.get('mode') as ViewMode) || 'kanban';
 
   const [deleteTask] = useDeleteTaskMutation();
 
@@ -47,11 +49,18 @@ export default function ListPage() {
 
   const ActiveView = VIEW_COMPONENTS[viewMode];
 
+  const handleViewChange = (newMode: string) => {
+    setSearchParams((prev) => {
+      prev.set('mode', newMode);
+      return prev;
+    });
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-6 pl-12 lg:pl-0">
         {/* View Mode Switcher */}
-        <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as ViewMode)}>
+        <Tabs value={viewMode} onValueChange={handleViewChange}>
           <TabsList className="grid w-fit grid-cols-2">
             <TabsTrigger value="kanban" className="gap-2">
               <Grid3x3 className="w-4 h-4" />

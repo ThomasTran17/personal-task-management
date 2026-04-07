@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, CircleUser, ChevronsUpDown } from 'lucide-react';
 import { CheckIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -46,10 +46,12 @@ export function ParticipantsDisplay({
 }: ParticipantsDisplayProps) {
   const [open, setOpen] = useState(false);
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>(participantIds);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastCallRef = useRef<string[]>(participantIds);
 
-  // Sync selected participants with participantIds prop
+  // Update ref when prop changes to keep track of actual participants
   useEffect(() => {
-    setSelectedParticipants(participantIds);
+    lastCallRef.current = participantIds;
   }, [participantIds]);
 
   // Fetch list of users
@@ -93,7 +95,19 @@ export function ParticipantsDisplay({
       : [...selectedParticipants, userId];
 
     setSelectedParticipants(newParticipants);
-    onParticipantsChange?.(newParticipants);
+
+    // Debounce the API call - wait 300ms before sending
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      // Only call if participants have actually changed
+      if (JSON.stringify(newParticipants) !== JSON.stringify(lastCallRef.current)) {
+        lastCallRef.current = newParticipants;
+        onParticipantsChange?.(newParticipants);
+      }
+    }, 300);
   };
 
   // Get user display name

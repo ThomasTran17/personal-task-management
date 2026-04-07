@@ -29,3 +29,7 @@
 @theme inline {
   --color-table-border: var(--table-border);
 }
+
+@theme {
+  --color-main-light: color-mix(in srgb, var(--main) 30%, white);
+}
