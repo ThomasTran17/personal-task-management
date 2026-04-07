@@ -104,6 +104,8 @@ interface ExpandableTaskRowProps extends React.HTMLAttributes<HTMLTableRowElemen
   // Edit/Delete callbacks
   onEditTask?: () => void;
   onDeleteTask?: () => void;
+  // Inline title editing support
+  onSaveTitle?: (newTitle: string) => void;
 }
 
 function ExpandableTaskRowComponent({
@@ -119,8 +121,44 @@ function ExpandableTaskRowComponent({
   actionContent,
   onEditTask,
   onDeleteTask,
+  onSaveTitle,
   ...props
 }: ExpandableTaskRowProps) {
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editValue, setEditValue] = React.useState(titleContent as string);
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleStartQuickEdit = React.useCallback(() => {
+    setIsEditing(true);
+    setEditValue(titleContent as string);
+    setTimeout(() => {
+      inputRef.current?.select();
+    }, 0);
+  }, [titleContent]);
+
+  const handleSaveQuickEdit = React.useCallback(() => {
+    if (editValue.trim() && editValue.trim() !== (titleContent as string)) {
+      onSaveTitle?.(editValue.trim());
+    }
+    setIsEditing(false);
+  }, [editValue, titleContent, onSaveTitle]);
+
+  const handleCancelEdit = React.useCallback(() => {
+    setEditValue(titleContent as string);
+    setIsEditing(false);
+  }, [titleContent]);
+
+  const handleKeyDown = React.useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        handleSaveQuickEdit();
+      } else if (e.key === 'Escape') {
+        handleCancelEdit();
+      }
+    },
+    [handleSaveQuickEdit, handleCancelEdit]
+  );
+
   return (
     <tr
       className={cn(
@@ -159,15 +197,43 @@ function ExpandableTaskRowComponent({
                 <ChevronDown className="size-4" />
               </button>
             )}
-            <div className="truncate">{titleContent}</div>
+            {isEditing ? (
+              <input
+                ref={inputRef}
+                type="text"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={handleSaveQuickEdit}
+                onKeyDown={handleKeyDown}
+                placeholder="Enter task title..."
+                className={cn(
+                  'flex-1 px-2 py-1 bg-background border border-main rounded outline-none text-foreground',
+                  'placeholder:text-foreground/50 w-[400px]'
+                )}
+              />
+            ) : (
+              <div
+                className="truncate cursor-pointer hover:underline transition-all"
+                onClick={onEditTask}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    onEditTask?.();
+                  }
+                }}
+              >
+                {titleContent}
+              </div>
+            )}
 
             <div className="lg:hidden group-hover:block">
-              {onEditTask && (
+              {onSaveTitle && (
                 <button
-                  onClick={onEditTask}
+                  onClick={handleStartQuickEdit}
                   className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-colors"
-                  title="Edit task"
-                  aria-label="Edit task"
+                  title="Edit title"
+                  aria-label="Edit title"
                 >
                   <Edit2 className="size-[14px]" />
                 </button>

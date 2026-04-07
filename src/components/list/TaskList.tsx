@@ -114,6 +114,7 @@ interface SubtaskListProps {
   onQuickStatusChange?: (taskId: string, status: TaskStatus) => void;
   onQuickPriorityChange?: (taskId: string, priority: TaskPriority) => void;
   onQuickDueDateChange?: (taskId: string, dueDate: string | null) => void;
+  onSaveSubtaskTitle?: (subtaskId: string, newTitle: string) => void;
 }
 
 function SubtaskList({
@@ -130,9 +131,52 @@ function SubtaskList({
   onQuickStatusChange,
   onQuickPriorityChange,
   onQuickDueDateChange,
+  onSaveSubtaskTitle,
 }: SubtaskListProps) {
+  const [editingSubtaskId, setEditingSubtaskId] = React.useState<string | null>(null);
+  const [editingSubtaskValue, setEditingSubtaskValue] = React.useState('');
+  const editInputRef = React.useRef<HTMLInputElement | null>(null);
+
   const midIndex = (subtasks.length - 1) >> 1;
   const isSingleSubtask = subtasks.length === 1;
+
+  const handleStartEditSubtask = React.useCallback((subtask: Task) => {
+    setEditingSubtaskId(subtask.id);
+    setEditingSubtaskValue(subtask.title);
+    setTimeout(() => {
+      editInputRef.current?.select();
+    }, 0);
+  }, []);
+
+  const handleSaveSubtaskEdit = React.useCallback(
+    (subtaskId: string) => {
+      if (
+        editingSubtaskValue.trim() &&
+        editingSubtaskValue.trim() !== subtasks.find((s) => s.id === subtaskId)?.title
+      ) {
+        onSaveSubtaskTitle?.(subtaskId, editingSubtaskValue.trim());
+      }
+      setEditingSubtaskId(null);
+      setEditingSubtaskValue('');
+    },
+    [editingSubtaskValue, subtasks, onSaveSubtaskTitle]
+  );
+
+  const handleCancelSubtaskEdit = React.useCallback(() => {
+    setEditingSubtaskId(null);
+    setEditingSubtaskValue('');
+  }, []);
+
+  const handleSubtaskEditKeyDown = React.useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>, subtaskId: string) => {
+      if (e.key === 'Enter') {
+        handleSaveSubtaskEdit(subtaskId);
+      } else if (e.key === 'Escape') {
+        handleCancelSubtaskEdit();
+      }
+    },
+    [handleSaveSubtaskEdit, handleCancelSubtaskEdit]
+  );
 
   return (
     <SubtaskContainer>
@@ -178,13 +222,41 @@ function SubtaskList({
             >
               <TableCell className="text-sm">
                 <div className="flex items-center justify-start gap-2 group">
-                  <span className="truncate">{subtask.title}</span>
+                  {editingSubtaskId === subtask.id ? (
+                    <input
+                      ref={editInputRef}
+                      type="text"
+                      value={editingSubtaskValue}
+                      onChange={(e) => setEditingSubtaskValue(e.target.value)}
+                      onBlur={() => handleSaveSubtaskEdit(subtask.id)}
+                      onKeyDown={(e) => handleSubtaskEditKeyDown(e, subtask.id)}
+                      placeholder="Enter subtask title..."
+                      className={cn(
+                        'flex-1 px-2 py-1 bg-background border border-main rounded outline-none text-foreground text-sm',
+                        'placeholder:text-foreground/50'
+                      )}
+                    />
+                  ) : (
+                    <span
+                      className="truncate cursor-pointer hover:underline transition-all"
+                      onClick={() => onEditSubtask?.(subtask)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          onEditSubtask?.(subtask);
+                        }
+                      }}
+                    >
+                      {subtask.title}
+                    </span>
+                  )}
                   <div className="lg:hidden group-hover:block flex items-center gap-2">
                     <button
-                      onClick={() => onEditSubtask?.(subtask)}
+                      onClick={() => handleStartEditSubtask(subtask)}
                       className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-colors"
-                      title="Edit subtask"
-                      aria-label="Edit subtask"
+                      title="Edit title"
+                      aria-label="Edit title"
                     >
                       <Edit2 className="size-[14px]" />
                     </button>
@@ -425,6 +497,44 @@ export default function TaskList({
     [updateTask]
   );
 
+  // Handle saving task title (inline edit)
+  const handleSaveTaskTitle = useCallback(
+    (taskId: string, newTitle: string) => {
+      void (async () => {
+        try {
+          await updateTask({
+            id: taskId,
+            updates: {
+              title: newTitle,
+            },
+          }).unwrap();
+        } catch (error) {
+          console.error('Failed to update task title:', error);
+        }
+      })();
+    },
+    [updateTask]
+  );
+
+  // Handle saving subtask title (inline edit)
+  const handleSaveSubtaskTitle = useCallback(
+    (subtaskId: string, newTitle: string) => {
+      void (async () => {
+        try {
+          await updateTask({
+            id: subtaskId,
+            updates: {
+              title: newTitle,
+            },
+          }).unwrap();
+        } catch (error) {
+          console.error('Failed to update subtask title:', error);
+        }
+      })();
+    },
+    [updateTask]
+  );
+
   // Toggle subtask expansion state
   const toggleExpanded = useCallback((taskId: string) => {
     setExpandedTasks((prev) => {
@@ -618,6 +728,7 @@ export default function TaskList({
                         titleContent={task.title}
                         onEditTask={() => onEditTask?.(task)}
                         onDeleteTask={() => onDeleteTask?.(task)}
+                        onSaveTitle={(newTitle) => handleSaveTaskTitle(task.id, newTitle)}
                         actionContent={
                           <>
                             <TableCell className="text-gray-600 text-sm">
@@ -689,6 +800,7 @@ export default function TaskList({
                               onQuickStatusChange={handleQuickStatusChange}
                               onQuickPriorityChange={handleQuickPriorityChange}
                               onQuickDueDateChange={handleQuickDueDateChange}
+                              onSaveSubtaskTitle={handleSaveSubtaskTitle}
                             />
                           </TableCell>
                         </TableRow>
