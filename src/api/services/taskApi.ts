@@ -24,6 +24,7 @@ interface UpdateTaskPayload {
   readonly dueDate?: string | null;
   readonly status?: 'TODO' | 'IN_PROGRESS' | 'DONE';
   readonly participantIds?: string[];
+  readonly subtasks?: Task[];
 }
 
 /**

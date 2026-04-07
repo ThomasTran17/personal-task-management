@@ -16,6 +16,7 @@ import {
   DatePicker,
 } from '@/components';
 import { ParticipantsDisplay } from '@/components/list';
+import { SubtaskList } from '@/components/kanban';
 import { useFormValidation } from '@/hooks';
 import { useUpdateTaskMutation } from '@/api';
 import type { Task, TaskStatus, TaskPriority } from '@/types';
@@ -67,6 +68,8 @@ const descriptionEditorConfig: EditorConfig = {
 
 export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskDialogProps) {
   const [prevTaskId, setPrevTaskId] = useState<string | null>(null);
+  const [currentTask, setCurrentTask] = useState<Task | null>(null);
+  const [parentTask, setParentTask] = useState<Task | null>(null);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -74,17 +77,22 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
   const [priority, setPriority] = useState<TaskPriority>('MEDIUM');
   const [dueDate, setDueDate] = useState<string | null>(null);
   const [participantIds, setParticipantIds] = useState<string[]>([]);
+  const [subtasks, setSubtasks] = useState<Task[]>([]);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [updateTask] = useUpdateTaskMutation();
   const { errors, validateForm, clearErrors, validateField } = useFormValidation();
 
+  // Initialize with parent task
   if (task && task.id !== prevTaskId) {
+    setCurrentTask(task);
+    setParentTask(task);
     setTitle(task.title);
     setDescription(task.description ?? '');
     setStatus(task.status);
     setPriority(task.priority);
     setDueDate(task.dueDate ?? null);
     setParticipantIds(task.participantIds ?? []);
+    setSubtasks(task.subtasks ?? []);
     setPrevTaskId(task.id);
 
     setTouched({});
@@ -106,26 +114,54 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!task) return;
+    if (!currentTask || !parentTask) return;
 
     const isValid = validateForm({ title, description });
     if (!isValid) return;
 
     void (async () => {
       try {
-        await updateTask({
-          id: task.id,
-          updates: {
-            title: title.trim(),
-            description: description.trim() || undefined,
-            status,
-            priority,
-            dueDate: dueDate ?? undefined,
-            participantIds: participantIds.length > 0 ? participantIds : undefined,
-          },
-        }).unwrap();
+        // If editing a subtask, update parent task with modified subtasks
+        if (currentTask.id !== parentTask.id) {
+          const updatedSubtasks =
+            parentTask.subtasks?.map((st) =>
+              st.id === currentTask.id
+                ? {
+                    ...currentTask,
+                    title: title.trim(),
+                    description: description.trim() || undefined,
+                    status,
+                    priority,
+                    dueDate: dueDate ?? undefined,
+                    participantIds: participantIds.length > 0 ? participantIds : undefined,
+                  }
+                : st
+            ) ?? [];
+
+          await updateTask({
+            id: parentTask.id,
+            updates: {
+              subtasks: updatedSubtasks,
+            },
+          }).unwrap();
+        } else {
+          // Editing parent task
+          await updateTask({
+            id: currentTask.id,
+            updates: {
+              title: title.trim(),
+              description: description.trim() || undefined,
+              status,
+              priority,
+              dueDate: dueDate ?? undefined,
+              participantIds: participantIds.length > 0 ? participantIds : undefined,
+              subtasks: subtasks.length > 0 ? subtasks : undefined,
+            },
+          }).unwrap();
+        }
 
         onOpenChange(false);
+        setPrevTaskId(currentTask.id);
       } catch (error) {
         console.error('Failed to update task:', error);
       }
@@ -144,6 +180,72 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
   const handleDescriptionBlur = () => {
     setTouched((prev) => ({ ...prev, description: true }));
     validateField('description', description);
+  };
+
+  const handleSubtaskClick = (subtask: Task) => {
+    // Save current task state
+    if (currentTask) {
+      const updatedSubtasks = (parentTask?.subtasks ?? []).map((st) =>
+        st.id === currentTask.id
+          ? {
+              ...currentTask,
+              title,
+              description,
+              status,
+              priority,
+              dueDate: dueDate ?? undefined,
+              participantIds,
+              subtasks,
+            }
+          : st
+      );
+      setParentTask((prev) => (prev ? { ...prev, subtasks: updatedSubtasks } : null));
+    }
+
+    // Load subtask data
+    setCurrentTask(subtask);
+    setTitle(subtask.title);
+    setDescription(subtask.description ?? '');
+    setStatus(subtask.status);
+    setPriority(subtask.priority);
+    setDueDate(subtask.dueDate ?? null);
+    setParticipantIds(subtask.participantIds ?? []);
+    setSubtasks(subtask.subtasks ?? []);
+    setTouched({});
+  };
+
+  const handleBackToParent = () => {
+    if (!parentTask) return;
+
+    // Save current subtask changes
+    if (currentTask && currentTask.id !== parentTask.id) {
+      const updatedSubtasks = (parentTask?.subtasks ?? []).map((st) =>
+        st.id === currentTask.id
+          ? {
+              ...currentTask,
+              title,
+              description,
+              status,
+              priority,
+              dueDate: dueDate ?? undefined,
+              participantIds,
+              subtasks,
+            }
+          : st
+      );
+      setParentTask((prev) => (prev ? { ...prev, subtasks: updatedSubtasks } : null));
+    }
+
+    // Load parent task data
+    setCurrentTask(parentTask);
+    setTitle(parentTask.title);
+    setDescription(parentTask.description ?? '');
+    setStatus(parentTask.status);
+    setPriority(parentTask.priority);
+    setDueDate(parentTask.dueDate ?? null);
+    setParticipantIds(parentTask.participantIds ?? []);
+    setSubtasks(parentTask.subtasks ?? []);
+    setTouched({});
   };
 
   return (
@@ -260,6 +362,26 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
               <p className="text-sm text-red-500 font-medium">{errors.description}</p>
             )}
           </div>
+
+          {/* Subtasks Section - Only show for parent tasks (not subtasks) */}
+          {!currentTask?.parentId && (
+            <SubtaskList
+              subtasks={subtasks}
+              onSubtasksChange={setSubtasks}
+              onSubtaskClick={handleSubtaskClick}
+            />
+          )}
+
+          {/* Back Button - Show when editing subtask */}
+          {currentTask?.parentId && parentTask && (
+            <button
+              type="button"
+              onClick={handleBackToParent}
+              className="w-full px-3 py-2 text-sm font-medium rounded-base transition-colors border border-border hover:bg-main-light/50"
+            >
+              ← Back to Parent Task: {parentTask.title}
+            </button>
+          )}
 
           {/* Dialog Footer */}
           <DialogFooter className="gap-2">
