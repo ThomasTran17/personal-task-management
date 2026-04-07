@@ -144,7 +144,7 @@ function SubtaskList({
                 aria-label="Select all subtasks"
               />
             </TableHead>
-            <TableHead className="w-[30%]">Title</TableHead>
+            <TableHead className="w-[29.9%]">Title</TableHead>
             <TableHead className="w-[20%]">Participants</TableHead>
             <TableHead className="w-[12%]">Status</TableHead>
             <TableHead className="w-[15%]">Due Date</TableHead>

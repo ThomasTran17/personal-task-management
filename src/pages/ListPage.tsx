@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   KanbanBoard,
   TaskList,
@@ -30,6 +30,9 @@ const VIEW_COMPONENTS = {
   list: TaskList,
 } as const;
 
+const VALID_MODES: ViewMode[] = ['kanban', 'list'];
+const DEFAULT_MODE: ViewMode = 'kanban';
+
 export default function ListPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -40,7 +43,8 @@ export default function ListPage() {
   const [filterStatus, setFilterStatus] = useState<TaskStatus | 'all'>('all');
   const [filterPriority, setFilterPriority] = useState<TaskPriority | 'all'>('all');
   const [searchParams, setSearchParams] = useSearchParams();
-  const viewMode = (searchParams.get('mode') as ViewMode) || 'kanban';
+  const queryMode = searchParams.get('mode') as ViewMode;
+  const viewMode: ViewMode = VALID_MODES.includes(queryMode) ? queryMode : DEFAULT_MODE;
 
   const [deleteTask] = useDeleteTaskMutation();
 
@@ -55,6 +59,20 @@ export default function ListPage() {
       return prev;
     });
   };
+
+  useEffect(() => {
+    const currentMode = searchParams.get('mode');
+
+    if (!currentMode || !VALID_MODES.includes(currentMode as ViewMode)) {
+      setSearchParams(
+        (prev) => {
+          prev.set('mode', DEFAULT_MODE);
+          return prev;
+        },
+        { replace: true }
+      );
+    }
+  }, [searchParams, setSearchParams]);
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
