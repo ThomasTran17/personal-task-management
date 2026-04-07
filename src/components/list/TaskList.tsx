@@ -177,7 +177,7 @@ function SubtaskList({
                       title="Edit subtask"
                       aria-label="Edit subtask"
                     >
-                      <Edit2 className="size-4" />
+                      <Edit2 className="size-[14px]" />
                     </button>
                     <button
                       onClick={() => onDeleteSubtask?.(subtask)}
@@ -185,7 +185,7 @@ function SubtaskList({
                       title="Delete subtask"
                       aria-label="Delete subtask"
                     >
-                      <Trash2 className="size-4" />
+                      <Trash2 className="size-[14px]" />
                     </button>
                   </div>
                 </div>

@@ -169,7 +169,7 @@ function ExpandableTaskRowComponent({
                   title="Edit task"
                   aria-label="Edit task"
                 >
-                  <Edit2 className="size-4" />
+                  <Edit2 className="size-[14px]" />
                 </button>
               )}
               {onDeleteTask && (
@@ -179,21 +179,21 @@ function ExpandableTaskRowComponent({
                   title="Delete task"
                   aria-label="Delete task"
                 >
-                  <Trash2 className="size-4" />
+                  <Trash2 className="size-[14px]" />
                 </button>
               )}
             </div>
           </div>
 
           {/* Action Buttons - Add Subtask, Edit, Delete */}
-          <div className="hidden group-hover:block flex items-center gap-2 ml-auto">
+          <div className="lg:hidden group-hover:block flex items-center gap-2 ml-auto">
             <button
               onClick={onAddSubtask}
               className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-colors"
               title="Add subtask"
               aria-label="Add subtask"
             >
-              <Plus className="size-4" />
+              <Plus className="size-[14px]" />
             </button>
           </div>
         </div>

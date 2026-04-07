@@ -61,12 +61,12 @@ export function ParticipantsDisplay({
   const displayContent = (
     <>
       {selectedParticipants.length === 0 ? (
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 cursor-pointer">
           <Plus size={60} className="text-gray-400" />
           <CircleUser size={60} className="text-gray-400" />
         </div>
       ) : (
-        <span className="text-gray-700 text-sm">
+        <span className="text-gray-700 text-sm cursor-pointer">
           {selectedParticipants.slice(0, maxDisplay).map((id, index) => (
             <React.Fragment key={id}>
               {index > 0 && ', '}
