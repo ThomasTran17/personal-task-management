@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import type { EditorConfig } from '@satek-vn/react-editor';
+import { Editor } from '@satek-vn/react-editor';
 import {
   Dialog,
   DialogContent,
@@ -35,6 +37,33 @@ const PRIORITY_OPTIONS = [
   { value: 'MEDIUM', label: 'Medium' },
   { value: 'HIGH', label: 'High' },
 ] as const;
+
+const descriptionEditorConfig: EditorConfig = {
+  placeholder: 'Enter task description (optional)',
+  menubar: [
+    'bold',
+    'italic',
+    'underline',
+    'strike',
+    '',
+    'bullet-list',
+    'ordered-list',
+    '',
+    'text-align',
+    '',
+    'link',
+  ],
+  uploadImage: async (files) => {
+    return await Promise.resolve(Array.from(files).map((file) => URL.createObjectURL(file)));
+  },
+  popupLink: (previousUrl, submit) => {
+    const url = window.prompt('URL', previousUrl);
+    if (url === null) {
+      return;
+    }
+    submit(url);
+  },
+};
 
 export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskDialogProps) {
   const [prevTaskId, setPrevTaskId] = useState<string | null>(null);
@@ -215,16 +244,18 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
           {/* Description Input */}
           <div className="space-y-2">
             <label className="text-sm font-medium">Description</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              onBlur={handleDescriptionBlur}
-              placeholder="Enter task description (optional)"
-              className={`w-full px-3 py-2 border-2 rounded-base bg-background text-foreground placeholder:text-foreground/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black resize-none transition-colors ${
+            <div
+              className={`border-2 rounded-base overflow-hidden transition-colors ${
                 touched.description && errors.description ? 'border-red-500' : 'border-border'
               }`}
-              rows={3}
-            />
+              onBlur={handleDescriptionBlur}
+            >
+              <Editor
+                config={descriptionEditorConfig}
+                value={description}
+                onChange={setDescription}
+              />
+            </div>
             {touched.description && errors.description && (
               <p className="text-sm text-red-500 font-medium">{errors.description}</p>
             )}
