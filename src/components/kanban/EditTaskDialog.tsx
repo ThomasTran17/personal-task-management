@@ -37,6 +37,8 @@ const PRIORITY_OPTIONS = [
 ] as const;
 
 export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskDialogProps) {
+  const [prevTaskId, setPrevTaskId] = useState<string | null>(null);
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>('TODO');
@@ -47,42 +49,30 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
   const [updateTask] = useUpdateTaskMutation();
   const { errors, validateForm, clearErrors, validateField } = useFormValidation();
 
+  if (task && task.id !== prevTaskId) {
+    setTitle(task.title);
+    setDescription(task.description ?? '');
+    setStatus(task.status);
+    setPriority(task.priority);
+    setDueDate(task.dueDate ?? null);
+    setParticipantIds(task.participantIds ?? []);
+    setPrevTaskId(task.id);
+
+    setTouched({});
+  }
+
   // Initialize form with task data
   useEffect(() => {
     if (task && isOpen) {
-      const initializeForm = () => {
-        setTitle(task.title);
-        setDescription(task.description ?? '');
-        setStatus(task.status);
-        setPriority(task.priority);
-        setDueDate(task.dueDate ?? null);
-        setParticipantIds(task.participantIds ?? []);
-      };
-
-      const timeoutId = setTimeout(initializeForm, 0);
-      return () => clearTimeout(timeoutId);
+      clearErrors();
     }
-  }, [task, isOpen]);
-
-  const resetForm = useCallback(() => {
-    setTitle('');
-    setDescription('');
-    setStatus('TODO');
-    setPriority('MEDIUM');
-    setDueDate(null);
-    setParticipantIds([]);
-    setTouched({});
-    clearErrors();
-  }, [clearErrors]);
+  }, [task, isOpen, clearErrors]);
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
-      if (!open) {
-        resetForm();
-      }
       onOpenChange(open);
     },
-    [onOpenChange, resetForm]
+    [onOpenChange]
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -106,7 +96,6 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
           },
         }).unwrap();
 
-        resetForm();
         onOpenChange(false);
       } catch (error) {
         console.error('Failed to update task:', error);
@@ -115,7 +104,6 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
   };
 
   const handleCancel = () => {
-    resetForm();
     onOpenChange(false);
   };
 

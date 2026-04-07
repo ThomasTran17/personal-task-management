@@ -68,8 +68,9 @@ export default function AddTaskDialog({ isOpen, onOpenChange }: AddTaskDialogPro
   const handleOpenChange = useCallback(
     (open: boolean) => {
       if (!open) {
-        resetForm();
+        setTimeout(resetForm, 300);
       }
+
       onOpenChange(open);
     },
     [onOpenChange, resetForm]
@@ -92,7 +93,6 @@ export default function AddTaskDialog({ isOpen, onOpenChange }: AddTaskDialogPro
           participantIds: participantIds.length > 0 ? participantIds : undefined,
         }).unwrap();
 
-        resetForm();
         onOpenChange(false);
       } catch (error) {
         console.error('Failed to add task:', error);
@@ -101,11 +101,11 @@ export default function AddTaskDialog({ isOpen, onOpenChange }: AddTaskDialogPro
   };
 
   const handleCancel = () => {
-    resetForm();
     onOpenChange(false);
   };
 
   const handleTitleBlur = () => {
+    if (!isOpen) return;
     setTouched((prev) => ({ ...prev, title: true }));
     validateField('title', title);
   };
