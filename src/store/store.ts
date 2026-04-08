@@ -1,14 +1,26 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
 import { baseApi } from '@/api';
+import taskReducer from './taskSlice';
 
 /**
- * Redux Store Configuration with RTK Query
- * Uses RTK Query for server-side state management
- * All task data is fetched on-demand and cached automatically
+ * Redux Store Configuration with RTK Query + Redux Slices
+ *
+ * Architecture:
+ * - taskSlice: Local-first state management (items, selectedId, filters)
+ * - baseApi: RTK Query for server-side caching with optimistic updates
+ * - Integration: extraReducers in taskSlice sync mutations/queries to local state
+ *
+ * Workflow:
+ * 1. Query (getTasks) => Cache + taskSlice.items (via extraReducers)
+ * 2. Mutation (updateTask) => Optimistic update in RTK Query + taskSlice sync
+ * 3. No invalidatesTags for mutations => Zero redundant GET requests
+ * 4. Manual cache sync via taskSlice extraReducers for consistency
  */
 export const store = configureStore({
   reducer: {
+    // Local-first task slice
+    task: taskReducer,
     // RTK Query API reducer
     [baseApi.reducerPath]: baseApi.reducer,
   },
