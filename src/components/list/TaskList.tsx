@@ -223,8 +223,9 @@ function SubtaskList({
               parentStatus={parentTaskStatus}
               hasConnector={index === midIndex}
               isSingleSubtask={isSingleSubtask}
-              isSelected={selectedIds.has(subtask.id)}
+              isSelected={selectedIds.has(subtask.id) && !disabledTaskIds.has(subtask.id)}
               onSelectionChange={() => onSubtaskToggle(subtask.id)}
+              disabled={disabledTaskIds.has(subtask.id)}
             >
               <TableCell className="text-sm">
                 <div className="flex items-center justify-start gap-2 group">
@@ -258,22 +259,26 @@ function SubtaskList({
                     </span>
                   )}
                   <div className="lg:hidden group-hover:block flex items-center gap-2">
-                    <button
-                      onClick={() => handleStartEditSubtask(subtask)}
-                      className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-colors"
-                      title="Edit title"
-                      aria-label="Edit title"
-                    >
-                      <Edit2 className="size-[14px]" />
-                    </button>
-                    <button
-                      onClick={() => onDeleteSubtask?.(subtask)}
-                      className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-colors"
-                      title="Delete subtask"
-                      aria-label="Delete subtask"
-                    >
-                      <Trash2 className="size-[14px]" />
-                    </button>
+                    {!disabledTaskIds.has(subtask.id) && (
+                      <>
+                        <button
+                          onClick={() => handleStartEditSubtask(subtask)}
+                          className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-colors"
+                          title="Edit title"
+                          aria-label="Edit title"
+                        >
+                          <Edit2 className="size-[14px]" />
+                        </button>
+                        <button
+                          onClick={() => onDeleteSubtask?.(subtask)}
+                          className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-colors"
+                          title="Delete subtask"
+                          aria-label="Delete subtask"
+                        >
+                          <Trash2 className="size-[14px]" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </TableCell>
@@ -765,6 +770,8 @@ export default function TaskList({
                             onEditTask={() => onEditTask?.(task)}
                             onDeleteTask={() => onDeleteTask?.(task)}
                             onSaveTitle={(newTitle) => handleSaveTaskTitle(task.id, newTitle)}
+                            canEdit={canUpdateCurrentTask}
+                            canSelect={canUpdateCurrentTask}
                             actionContent={
                               <>
                                 <TableCell className="text-gray-600 text-sm">

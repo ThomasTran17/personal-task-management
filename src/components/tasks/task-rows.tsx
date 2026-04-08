@@ -18,6 +18,7 @@ interface SubtaskRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
   parentStatus?: TaskStatus;
   isSelected?: boolean;
   onSelectionChange?: () => void;
+  disabled?: boolean;
 }
 
 function SubtaskTableRowComponent({
@@ -28,6 +29,7 @@ function SubtaskTableRowComponent({
   parentStatus,
   isSelected = false,
   onSelectionChange,
+  disabled = false,
   children,
   ...props
 }: SubtaskRowProps) {
@@ -56,8 +58,9 @@ function SubtaskTableRowComponent({
       {/* NEW Checkbox TD - After Indent, before Content */}
       <td className="w-[5%] ps-0 text-center border-r-1 border-t-1 border-table-border">
         <Checkbox
-          checked={isSelected}
+          checked={isSelected && !disabled}
           onCheckedChange={onSelectionChange}
+          disabled={disabled}
           aria-label="Select subtask"
         />
       </td>
@@ -106,6 +109,9 @@ interface ExpandableTaskRowProps extends React.HTMLAttributes<HTMLTableRowElemen
   onDeleteTask?: () => void;
   // Inline title editing support
   onSaveTitle?: (newTitle: string) => void;
+  // Permission check
+  canEdit?: boolean;
+  canSelect?: boolean;
 }
 
 function ExpandableTaskRowComponent({
@@ -122,6 +128,8 @@ function ExpandableTaskRowComponent({
   onEditTask,
   onDeleteTask,
   onSaveTitle,
+  canEdit = true,
+  canSelect = true,
   ...props
 }: ExpandableTaskRowProps) {
   const [isEditing, setIsEditing] = React.useState(false);
@@ -170,8 +178,9 @@ function ExpandableTaskRowComponent({
       {/* Checkbox cell - sticky for easy selection */}
       <TableCell className="ps-0 text-center">
         <Checkbox
-          checked={isSelected}
+          checked={isSelected && canSelect}
           onCheckedChange={onSelectionChange}
+          disabled={!canSelect}
           aria-label="Select task"
         />
       </TableCell>
@@ -228,7 +237,7 @@ function ExpandableTaskRowComponent({
             )}
 
             <div className="lg:hidden group-hover:block">
-              {onSaveTitle && (
+              {canEdit && onSaveTitle && (
                 <button
                   onClick={handleStartQuickEdit}
                   className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-colors"
@@ -238,7 +247,7 @@ function ExpandableTaskRowComponent({
                   <Edit2 className="size-[14px]" />
                 </button>
               )}
-              {onDeleteTask && (
+              {canEdit && onDeleteTask && (
                 <button
                   onClick={onDeleteTask}
                   className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-colors"
