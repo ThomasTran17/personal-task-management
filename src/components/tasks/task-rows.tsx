@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Edit2, Trash2, Plus } from 'lucide-react';
 import { cn } from '@/lib';
 import { useTaskInput } from '@/hooks/use-task-input';
 import { TableCell } from '@/components/ui/table';
@@ -18,6 +18,7 @@ interface SubtaskRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
   parentStatus?: TaskStatus;
   isSelected?: boolean;
   onSelectionChange?: () => void;
+  disabled?: boolean;
 }
 
 function SubtaskTableRowComponent({
@@ -28,6 +29,7 @@ function SubtaskTableRowComponent({
   parentStatus,
   isSelected = false,
   onSelectionChange,
+  disabled = false,
   children,
   ...props
 }: SubtaskRowProps) {
@@ -38,7 +40,7 @@ function SubtaskTableRowComponent({
     >
       <td
         className={cn(
-          'align-middle truncate max-w-0 border-r-5 relative',
+          'align-middle truncate max-w-0 border-r-5 relative bg-background',
           getStatusColor(status).borderRight
         )}
       >
@@ -56,8 +58,9 @@ function SubtaskTableRowComponent({
       {/* NEW Checkbox TD - After Indent, before Content */}
       <td className="w-[5%] ps-0 text-center border-r-1 border-t-1 border-table-border">
         <Checkbox
-          checked={isSelected}
+          checked={isSelected && !disabled}
           onCheckedChange={onSelectionChange}
+          disabled={disabled}
           aria-label="Select subtask"
         />
       </td>
@@ -77,7 +80,7 @@ type SubtaskContainerProps = React.HTMLAttributes<HTMLDivElement>;
 
 function SubtaskContainerComponent({ className, children, ...props }: SubtaskContainerProps) {
   return (
-    <div className={cn('py-6', className)} {...props}>
+    <div className={cn('py-6 bg-background', className)} {...props}>
       {children}
     </div>
   );
@@ -101,6 +104,14 @@ interface ExpandableTaskRowProps extends React.HTMLAttributes<HTMLTableRowElemen
   // Slot Pattern - Explicit named slots for type-safety
   titleContent: React.ReactNode;
   actionContent?: React.ReactNode;
+  // Edit/Delete callbacks
+  onEditTask?: () => void;
+  onDeleteTask?: () => void;
+  // Inline title editing support
+  onSaveTitle?: (newTitle: string) => void;
+  // Permission check
+  canEdit?: boolean;
+  canSelect?: boolean;
 }
 
 function ExpandableTaskRowComponent({
@@ -114,12 +125,52 @@ function ExpandableTaskRowComponent({
   onSelectionChange,
   titleContent,
   actionContent,
+  onEditTask,
+  onDeleteTask,
+  onSaveTitle,
+  canEdit = true,
+  canSelect = true,
   ...props
 }: ExpandableTaskRowProps) {
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editValue, setEditValue] = React.useState(titleContent as string);
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleStartQuickEdit = React.useCallback(() => {
+    setIsEditing(true);
+    setEditValue(titleContent as string);
+    setTimeout(() => {
+      inputRef.current?.select();
+    }, 0);
+  }, [titleContent]);
+
+  const handleSaveQuickEdit = React.useCallback(() => {
+    if (editValue.trim() && editValue.trim() !== (titleContent as string)) {
+      onSaveTitle?.(editValue.trim());
+    }
+    setIsEditing(false);
+  }, [editValue, titleContent, onSaveTitle]);
+
+  const handleCancelEdit = React.useCallback(() => {
+    setEditValue(titleContent as string);
+    setIsEditing(false);
+  }, [titleContent]);
+
+  const handleKeyDown = React.useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        handleSaveQuickEdit();
+      } else if (e.key === 'Escape') {
+        handleCancelEdit();
+      }
+    },
+    [handleSaveQuickEdit, handleCancelEdit]
+  );
+
   return (
     <tr
       className={cn(
-        'border-y-1 border-table-border border-s-3 transition-all hover:bg-main/10 relative',
+        'border-y-1 border-table-border border-s-3 transition-all hover:bg-main/10 relative group',
         className
       )}
       {...props}
@@ -127,8 +178,9 @@ function ExpandableTaskRowComponent({
       {/* Checkbox cell - sticky for easy selection */}
       <TableCell className="ps-0 text-center">
         <Checkbox
-          checked={isSelected}
+          checked={isSelected && canSelect}
           onCheckedChange={onSelectionChange}
+          disabled={!canSelect}
           aria-label="Select task"
         />
       </TableCell>
@@ -142,7 +194,7 @@ function ExpandableTaskRowComponent({
           )}
         />
         <div className="flex items-center gap-2 justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center flex-start gap-2 truncate">
             {hasSubtasks && (
               <button
                 onClick={() => onToggleSubtasks?.(!isExpanded)}
@@ -154,18 +206,71 @@ function ExpandableTaskRowComponent({
                 <ChevronDown className="size-4" />
               </button>
             )}
-            {titleContent}
+            {isEditing ? (
+              <input
+                ref={inputRef}
+                type="text"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={handleSaveQuickEdit}
+                onKeyDown={handleKeyDown}
+                placeholder="Enter task title..."
+                className={cn(
+                  'flex-1 outline-none text-foreground',
+                  'placeholder:text-foreground/50 w-[400px] h-full'
+                )}
+              />
+            ) : (
+              <div
+                className="truncate cursor-pointer hover:underline transition-all"
+                onClick={onEditTask}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    onEditTask?.();
+                  }
+                }}
+              >
+                {titleContent}
+              </div>
+            )}
+
+            <div className="lg:hidden group-hover:block">
+              {canEdit && onSaveTitle && (
+                <button
+                  onClick={handleStartQuickEdit}
+                  className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-colors"
+                  title="Edit title"
+                  aria-label="Edit title"
+                >
+                  <Edit2 className="size-[14px]" />
+                </button>
+              )}
+              {canEdit && onDeleteTask && (
+                <button
+                  onClick={onDeleteTask}
+                  className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-colors"
+                  title="Delete task"
+                  aria-label="Delete task"
+                >
+                  <Trash2 className="size-[14px]" />
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Add Subtask Button - Always visible */}
-          <button
-            onClick={onAddSubtask}
-            className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-colors ml-auto"
-            title="Add subtask"
-            aria-label="Add subtask"
-          >
-            <span className="text-lg font-light leading-none">+</span>
-          </button>
+          {/* Action Buttons - Add Subtask, Edit, Delete */}
+          <div className="lg:hidden group-hover:block flex items-center gap-2 ml-auto">
+            <button
+              onClick={onAddSubtask}
+              className="inline-flex items-center justify-center w-6 h-6 flex-shrink-0 hover:bg-main/20 rounded-base transition-colors"
+              title="Add subtask"
+              aria-label="Add subtask"
+            >
+              <Plus className="size-[14px]" />
+            </button>
+          </div>
         </div>
       </TableCell>
       {/* Action cells slot */}
@@ -249,13 +354,13 @@ function AddTaskRowComponent({
       {parentStatus && (
         <td
           className={cn(
-            'ps-4 pe-4 py-2 align-middle truncate max-w-0 border-r-5',
+            'ps-4 pe-4 py-2 align-middle truncate max-w-0 border-r-5 bg-background',
             getStatusColor(parentStatus).borderRight
           )}
         />
       )}
 
-      <TableCell colSpan={6} className="ps-0 pe-0 border-b-1">
+      <TableCell colSpan={7} className={cn('ps-0 pe-0 border-b-1', status && 'rounded-br-base')}>
         {isEditing ? (
           <input
             ref={inputRef}

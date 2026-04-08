@@ -6,6 +6,7 @@
 export {
   useChangePasswordMutation,
   useGetProfileQuery,
+  useGetUsersQuery,
   useLoginMutation,
   useLogoutMutation,
   useRefreshTokenMutation,
@@ -24,4 +25,5 @@ export {
   useGetTaskByIdQuery,
   useGetTasksQuery,
   useUpdateTaskMutation,
+  canUpdateTask,
 } from './taskApi';

@@ -20,6 +20,7 @@ interface SearchAndFilterProps {
   filterStatus: TaskStatus | 'all';
   filterPriority: TaskPriority | 'all';
   onAddTask: () => void;
+  viewMode?: 'kanban' | 'list';
 }
 
 const STATUS_OPTIONS = [
@@ -44,6 +45,7 @@ export default function SearchAndFilter({
   filterStatus,
   filterPriority,
   onAddTask,
+  viewMode,
 }: SearchAndFilterProps) {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
@@ -57,7 +59,7 @@ export default function SearchAndFilter({
   }, [onSearch, onFilterStatus, onFilterPriority]);
 
   return (
-    <div className="mb-8 space-y-4">
+    <div className="mb-8 space-y-4 w-full">
       {/* Search Bar and Filters Toggle Row - Mobile */}
       <div className="flex items-center gap-4 lg:hidden">
         {/* Search Bar */}
@@ -108,7 +110,7 @@ export default function SearchAndFilter({
       </div>
 
       {/* Floating Circle Add Task Button - Mobile Only */}
-      <div className="fixed bottom-18 right-6 lg:hidden">
+      <div className="fixed bottom-18 right-6 lg:hidden z-50">
         <Button
           onClick={onAddTask}
           variant="default"
@@ -127,8 +129,8 @@ export default function SearchAndFilter({
             : 'hidden lg:grid lg:grid-cols-3'
         )}
       >
-        {/* Status Filter - Hidden on Mobile (Tab view handles it) */}
-        <div className="hidden lg:block space-y-2">
+        {/* Status Filter - Hidden on Mobile (Tab view handles it), except in List view */}
+        <div className={cn('space-y-2', viewMode === 'list' ? 'block' : 'hidden lg:block')}>
           <label className="text-sm font-medium">Filter by Status</label>
           <Select
             value={filterStatus}

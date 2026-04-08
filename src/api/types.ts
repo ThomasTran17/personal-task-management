@@ -138,16 +138,15 @@ export interface User {
 
 /**
  * User attributes (from JSON:API resource attributes)
+ * Matches backend ProfileResponseDto structure
  */
 export interface UserAttributes {
   readonly email: string;
-  readonly firstName?: string;
-  readonly lastName?: string;
-  readonly displayName?: string;
-  readonly photoUrl?: string;
-  readonly isEmailVerified?: boolean;
-  readonly createdAt: string;
-  readonly updatedAt: string;
+  readonly firstName: string;
+  readonly lastName: string;
+  readonly avatar?: string;
+  readonly createdAt?: Date;
+  readonly updatedAt?: Date;
 }
 
 /**
@@ -155,6 +154,20 @@ export interface UserAttributes {
  */
 export interface UserWithAttributes extends UserAttributes {
   readonly id: string;
+}
+
+/**
+ * User response DTO (from backend endpoint response)
+ * Matches UserResponseDto structure from backend
+ */
+export interface UserResponseDto {
+  readonly id: string;
+  readonly email: string;
+  readonly firstName: string;
+  readonly lastName: string;
+  readonly avatar?: string;
+  readonly createdAt?: Date;
+  readonly updatedAt?: Date;
 }
 
 /**

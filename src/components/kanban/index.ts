@@ -8,5 +8,6 @@ export { default as EmptyColumnState } from './EmptyColumnState';
 export { default as KanbanBoard } from './KanbanBoard';
 export { default as KanbanColumn } from './KanbanColumn';
 export { default as SearchAndFilter } from './SearchAndFilter';
+export { default as SubtaskList } from './SubtaskList';
 export { default as TaskCard } from './TaskCard';
 export { default as TaskCardDraggable } from './TaskCardDraggable';

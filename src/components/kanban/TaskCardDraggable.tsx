@@ -8,6 +8,7 @@ interface TaskCardDraggableProps {
   isDragging?: boolean;
   onDragStart: (taskId: string, status: TaskStatus) => void;
   onDragEnd: () => void;
+  onEditTask?: (task: Task) => void;
 }
 
 /**
@@ -21,6 +22,7 @@ export default function TaskCardDraggable({
   isDragging = false,
   onDragStart,
   onDragEnd,
+  onEditTask,
 }: TaskCardDraggableProps) {
   return (
     <div
@@ -31,7 +33,7 @@ export default function TaskCardDraggable({
         isDragging ? 'opacity-50 scale-95' : 'opacity-100 scale-100'
       } cursor-move hover:shadow-lg`}
     >
-      <TaskCard task={task} onDelete={onDelete} />
+      <TaskCard task={task} onDelete={onDelete} onEditTask={onEditTask} />
     </div>
   );
 }

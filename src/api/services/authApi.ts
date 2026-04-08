@@ -17,6 +17,7 @@ import type {
   ResetPasswordRequest,
   UserAttributes,
   UserWithAttributes,
+  UserResponseDto,
 } from '@/api';
 
 /**
@@ -139,6 +140,7 @@ export const authApi = baseApi.injectEndpoints({
 
     /**
      * Get current user profile endpoint
+     * Returns user profile data without accessToken
      * @query
      */
     getProfile: builder.query<UserWithAttributes, void>({
@@ -152,10 +154,19 @@ export const authApi = baseApi.injectEndpoints({
           throw new Error('Profile response should contain single user resource');
         }
 
+        // Response is JSON:API format: { data: { type, id, attributes } }
         const resource = response.data as JsonApiResource<UserAttributes>;
+
+        // Convert date strings to Date objects if needed
+        const attrs = resource.attributes as unknown as Record<string, unknown>;
         const userWithAttrs: UserWithAttributes = {
           id: resource.id,
-          ...resource.attributes,
+          email: attrs.email as string,
+          firstName: attrs.firstName as string,
+          lastName: attrs.lastName as string,
+          avatar: attrs.avatar as string | undefined,
+          createdAt: attrs.createdAt ? new Date(attrs.createdAt as string | Date) : undefined,
+          updatedAt: attrs.updatedAt ? new Date(attrs.updatedAt as string | Date) : undefined,
         };
 
         return userWithAttrs;
@@ -246,6 +257,43 @@ export const authApi = baseApi.injectEndpoints({
         body: request,
       }),
     }),
+
+    /**
+     * Get all users in the system
+     * @query
+     */
+    getUsers: builder.query<readonly UserResponseDto[], void>({
+      query: () => '/users',
+      transformResponse: (
+        response: JsonApiResponse<UserAttributes>
+      ): readonly UserResponseDto[] => {
+        // Handle array of resources
+        if (!Array.isArray(response.data)) {
+          throw new Error('getUsers response should contain array of user resources');
+        }
+
+        return response.data.map((resource: JsonApiResource<UserAttributes>) => ({
+          id: resource.id,
+          email: resource.attributes.email,
+          firstName: resource.attributes.firstName ?? '',
+          lastName: resource.attributes.lastName ?? '',
+          avatar: resource.attributes.avatar,
+          createdAt: resource.attributes.createdAt
+            ? new Date(resource.attributes.createdAt)
+            : undefined,
+          updatedAt: resource.attributes.updatedAt
+            ? new Date(resource.attributes.updatedAt)
+            : undefined,
+        }));
+      },
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: 'User' as const, id })),
+              { type: 'User' as const, id: 'LIST' },
+            ]
+          : [{ type: 'User' as const, id: 'LIST' }],
+    }),
   }),
 });
 
@@ -267,4 +315,5 @@ export const {
   useChangePasswordMutation,
   useRequestPasswordResetMutation,
   useResetPasswordMutation,
+  useGetUsersQuery,
 } = authApi;

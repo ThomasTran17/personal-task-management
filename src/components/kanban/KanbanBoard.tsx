@@ -1,7 +1,10 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger, KanbanColumn } from '@/components';
-import { useGetTasksQuery, useDeleteTaskMutation } from '@/api';
-import type { TaskStatus, TaskPriority } from '@/types';
+import { useDeleteTaskMutation } from '@/api';
+import type { TaskStatus } from '@/types';
+import type { Task } from '@/types/task';
+import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
+import type { SerializedError } from '@reduxjs/toolkit';
 import { sortTasksByDeadline } from '@/lib';
 import {
   usePeriodicDeadlineCheck,
@@ -11,10 +14,13 @@ import {
 } from '@/hooks';
 
 interface KanbanBoardProps {
-  searchQuery: string;
+  tasks: readonly Task[];
+  _isLoading?: boolean;
+  _error?: FetchBaseQueryError | SerializedError;
   filterStatus: TaskStatus | 'all';
-  filterPriority: TaskPriority | 'all';
   onFilterStatusChange: (status: TaskStatus | 'all') => void;
+  onEditTask?: (task: Task) => void;
+  onDeleteTask?: (task: Task) => void;
 }
 
 const COLUMNS = [
@@ -24,13 +30,15 @@ const COLUMNS = [
 ] as const;
 
 export default function KanbanBoard({
-  searchQuery,
+  tasks,
+  _isLoading = false,
+  _error,
   filterStatus,
-  filterPriority,
   onFilterStatusChange,
+  onEditTask,
+  onDeleteTask,
 }: KanbanBoardProps) {
-  // RTK Query hooks for data fetching
-  const { data: tasks = [] } = useGetTasksQuery();
+  // RTK Query hooks for mutations
   const [deleteTask] = useDeleteTaskMutation();
 
   // Drag and drop hook
@@ -46,31 +54,16 @@ export default function KanbanBoard({
   // Setup title badge with deadline count
   useTitleBadge();
 
-  const filteredTasks = useMemo(() => {
-    return tasks.filter((task) => {
-      // Search filter by title (case-insensitive)
-      const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase());
-
-      // Status filter
-      const matchesStatus = filterStatus === 'all' || task.status === filterStatus;
-
-      // Priority filter
-      const matchesPriority = filterPriority === 'all' || task.priority === filterPriority;
-
-      return matchesSearch && matchesStatus && matchesPriority;
-    });
-  }, [tasks, searchQuery, filterStatus, filterPriority]);
-
   const getTasksByStatus = useCallback(
     (status: TaskStatus) => {
-      const tasksByStatus = filteredTasks.filter((task) => task.status === status);
-      // Sort by deadline for todo and in-progress, keep as-is for done
+      const tasksByStatus = tasks.filter((task) => task.status === status);
+
       if (status === 'TODO' || status === 'IN_PROGRESS') {
         return sortTasksByDeadline(tasksByStatus);
       }
       return tasksByStatus;
     },
-    [filteredTasks]
+    [tasks]
   );
 
   return (
@@ -97,7 +90,10 @@ export default function KanbanBoard({
                 bgColor={column.bgColor}
                 tasks={getTasksByStatus(column.status)}
                 onDeleteTask={(id: string) => {
-                  void deleteTask(id);
+                  const task = tasks.find((t) => t.id === id);
+                  if (task) {
+                    onDeleteTask?.(task);
+                  }
                 }}
                 isFiltered={filterStatus !== 'all'}
                 draggedTaskId={dragState.draggedTaskId}
@@ -105,6 +101,7 @@ export default function KanbanBoard({
                 onDragEnd={handleDragEnd}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
+                onEditTask={onEditTask}
               />
             );
           })}

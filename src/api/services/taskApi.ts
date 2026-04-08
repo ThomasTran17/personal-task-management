@@ -14,14 +14,27 @@ interface CreateTaskPayload {
   readonly priority: 'LOW' | 'MEDIUM' | 'HIGH';
   readonly dueDate?: string;
   readonly status?: 'TODO' | 'IN_PROGRESS' | 'DONE';
+  readonly participantIds?: string[];
 }
 
 interface UpdateTaskPayload {
   readonly title?: string;
   readonly description?: string;
   readonly priority?: 'LOW' | 'MEDIUM' | 'HIGH';
-  readonly dueDate?: string;
+  readonly dueDate?: string | null;
   readonly status?: 'TODO' | 'IN_PROGRESS' | 'DONE';
+  readonly participantIds?: string[];
+  readonly subtasks?: Task[];
+}
+
+/**
+ * Helper function to check if user has permission to update a task
+ * Only owner and participants can update the task
+ */
+function canUpdateTask(task: Task, userId: string): boolean {
+  const isOwner = task.ownerId === userId;
+  const isParticipant = task.participantIds?.includes(userId) ?? false;
+  return isOwner || isParticipant;
 }
 
 /**
@@ -69,7 +82,7 @@ export const taskApi = baseApi.injectEndpoints({
      * Includes nested subtasks from server (backend already loads them)
      */
     getTasks: builder.query<readonly Task[], void>({
-      query: () => '/tasks/primary',
+      query: () => '/tasks/all',
       transformResponse: (response: JsonApiResponse<TaskAttributes>): readonly Task[] => {
         // Handle array of resources
         if (!Array.isArray(response.data)) {
@@ -135,7 +148,9 @@ export const taskApi = baseApi.injectEndpoints({
 
     /**
      * Create new task
-     * Invalidates task list cache after mutation
+     *
+     * NO invalidatesTags: Manual cache sync via taskSlice extraReducers
+     * This prevents redundant GET /tasks/all after create
      */
     addTask: builder.mutation<Task, CreateTaskPayload>({
       query: (payload) => ({
@@ -152,12 +167,12 @@ export const taskApi = baseApi.injectEndpoints({
         const resource = response.data as JsonApiResource<TaskAttributes>;
         return mapTaskAttributes(resource.attributes, resource.id);
       },
-      invalidatesTags: [{ type: 'Task', id: 'LIST' }],
       // Optimistic update: add task to cache before server response
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         // Get current tasks from cache
         const patchResult = dispatch(
           taskApi.util.updateQueryData('getTasks', undefined, (draft) => {
+            const tasksDraft = draft as Task[];
             const now = new Date().toISOString();
             const newTask: Task = {
               id: `temp-${Date.now()}`,
@@ -176,9 +191,7 @@ export const taskApi = baseApi.injectEndpoints({
               newTask.dueDate = arg.dueDate;
             }
 
-            // @ts-expect-error - draft is mutable in RTK Query
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-            draft.push(newTask);
+            tasksDraft.push(newTask);
           })
         );
 
@@ -204,6 +217,9 @@ export const taskApi = baseApi.injectEndpoints({
     /**
      * Create subtask for a parent task
      * Updates parent task's subtasks array in getTasks cache
+     *
+     * NO invalidatesTags: Manual cache sync via taskSlice extraReducers
+     * This prevents redundant GET /tasks/all after create
      */
     addSubtask: builder.mutation<Task, { parentId: string; payload: CreateTaskPayload }>({
       query: ({ parentId, payload }) => ({
@@ -220,11 +236,6 @@ export const taskApi = baseApi.injectEndpoints({
         const resource = response.data as JsonApiResource<TaskAttributes>;
         return mapTaskAttributes(resource.attributes, resource.id);
       },
-      invalidatesTags: (result, _error, { parentId }) => [
-        // Invalidate parent task to refresh subtasks
-        { type: 'Task', id: parentId },
-        { type: 'Task', id: 'LIST' },
-      ],
       // Optimistic update: add subtask to parent task's subtasks array in getTasks cache
       async onQueryStarted({ parentId, payload }, { dispatch, queryFulfilled }) {
         // Update getTasks cache to add subtask to parent task
@@ -279,10 +290,20 @@ export const taskApi = baseApi.injectEndpoints({
     }),
 
     /**
-     * Update task
-     * Invalidates specific task and list cache
+     * Update task or subtask (unified mutation)
+     * Only owner and participants can update the task
+     * Backend validates permission and returns 403 if denied
+     *
+     * For parent tasks: { id: taskId, updates: UpdateTaskPayload }
+     * For subtasks: { id: subtaskId, parentId: parentTaskId, updates: UpdateTaskPayload }
+     *
+     * NO invalidatesTags: Manual cache sync via taskSlice extraReducers
+     * This prevents redundant GET /tasks/all after update
      */
-    updateTask: builder.mutation<Task, { id: string; updates: UpdateTaskPayload }>({
+    updateTask: builder.mutation<
+      Task,
+      { id: string; updates: UpdateTaskPayload; parentId?: string }
+    >({
       query: ({ id, updates }) => ({
         url: `/tasks/${id}`,
         method: 'PUT',
@@ -297,17 +318,25 @@ export const taskApi = baseApi.injectEndpoints({
         const resource = response.data as JsonApiResource<TaskAttributes>;
         return mapTaskAttributes(resource.attributes, resource.id);
       },
-      invalidatesTags: (result, _error, { id }) => [
-        { type: 'Task', id },
-        { type: 'Task', id: 'LIST' },
-      ],
-      // Optimistic update: modify task in cache before server response
-      async onQueryStarted({ id, updates }, { dispatch, queryFulfilled }) {
+      // Optimistic update: modify task or subtask in cache before server response
+      async onQueryStarted({ id, updates, parentId }, { dispatch, queryFulfilled }) {
         const patchResult = dispatch(
           taskApi.util.updateQueryData('getTasks', undefined, (draft) => {
-            const task = draft.find((t) => t.id === id);
-            if (task) {
-              Object.assign(task, updates, { updatedAt: new Date().toISOString() });
+            if (parentId) {
+              // Update subtask in parent's subtasks array
+              const parentTask = draft.find((t) => t.id === parentId);
+              if (parentTask?.subtasks) {
+                const subtask = parentTask.subtasks.find((t) => t.id === id);
+                if (subtask) {
+                  Object.assign(subtask, updates, { updatedAt: new Date().toISOString() });
+                }
+              }
+            } else {
+              // Update task in root tasks array
+              const task = draft.find((t) => t.id === id);
+              if (task) {
+                Object.assign(task, updates, { updatedAt: new Date().toISOString() });
+              }
             }
           })
         );
@@ -323,14 +352,15 @@ export const taskApi = baseApi.injectEndpoints({
 
     /**
      * Delete task (cascade deletes all subtasks)
-     * Invalidates task list cache
+     *
+     * NO invalidatesTags: Manual cache sync via taskSlice extraReducers
+     * This prevents redundant GET /tasks/all after delete
      */
     deleteTask: builder.mutation<{ message: string }, string>({
       query: (id) => ({
         url: `/tasks/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: [{ type: 'Task', id: 'LIST' }],
       // Optimistic update: remove task from cache before server response
       async onQueryStarted(id, { dispatch, queryFulfilled }) {
         const patchResult = dispatch(
@@ -340,6 +370,40 @@ export const taskApi = baseApi.injectEndpoints({
               // @ts-expect-error - draft is mutable in RTK Query
               // eslint-disable-next-line @typescript-eslint/no-unsafe-call
               draft.splice(index, 1);
+            }
+          })
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          // Revert on error
+          patchResult.undo();
+        }
+      },
+    }),
+
+    /**
+     * Delete subtask from parent task
+     *
+     * NO invalidatesTags: Manual cache sync via taskSlice extraReducers
+     * This prevents redundant GET /tasks/all after delete
+     */
+    deleteSubtask: builder.mutation<{ message: string }, { parentId: string; subtaskId: string }>({
+      query: ({ parentId, subtaskId }) => ({
+        url: `/tasks/${parentId}/subtasks/${subtaskId}`,
+        method: 'DELETE',
+      }),
+      // Optimistic update: remove subtask from cache before server response
+      async onQueryStarted({ parentId, subtaskId }, { dispatch, queryFulfilled }) {
+        const patchResult = dispatch(
+          taskApi.util.updateQueryData('getTasks', undefined, (draft) => {
+            const parentTask = draft.find((t) => t.id === parentId);
+            if (parentTask?.subtasks) {
+              const index = parentTask.subtasks.findIndex((t) => t.id === subtaskId);
+              if (index !== -1) {
+                parentTask.subtasks.splice(index, 1);
+              }
             }
           })
         );
@@ -368,14 +432,24 @@ export const taskApi = baseApi.injectEndpoints({
 });
 
 // Export auto-generated hooks
+/**
+ * Note on permission checks:
+ * - Backend validates all permissions (owner/participant for update operations)
+ * - Frontend can use the canUpdateTask helper for UI visibility
+ * - Backend returns 403 Forbidden if user lacks permission
+ */
 export const {
   useGetTasksQuery,
   useGetSubtasksQuery,
   useGetTaskByIdQuery,
   useAddTaskMutation,
   useAddSubtaskMutation,
+  useDeleteSubtaskMutation,
   useUpdateTaskMutation,
   useDeleteTaskMutation,
   useDeleteAllTasksMutation,
   util: { resetApiState },
 } = taskApi;
+
+// Export helper functions for permission checks
+export { canUpdateTask };

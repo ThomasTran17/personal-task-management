@@ -7,10 +7,13 @@ import { Button, Calendar, Input, Popover, PopoverContent, PopoverTrigger } from
 
 interface DatePickerProps {
   value?: string | null;
-  onDateChange: (date: string | null) => void;
+  onDateChange: (date: string | null, isTimeChange?: boolean) => void;
   placeholder?: string;
   className?: string;
   withTime?: boolean;
+  side?: 'top' | 'bottom' | 'left' | 'right';
+  align?: 'start' | 'center' | 'end';
+  sideOffset?: number;
 }
 
 export default function DatePicker({
@@ -19,6 +22,9 @@ export default function DatePicker({
   placeholder = 'Pick a date',
   className = 'w-full',
   withTime = false,
+  side = 'left',
+  align = 'center',
+  sideOffset,
 }: DatePickerProps) {
   const valueDate = value ? new Date(value) : null;
   const [hours, setHours] = React.useState<string>(
@@ -40,7 +46,7 @@ export default function DatePicker({
       date.setHours(hours_num, minutes_num, 0, 0);
     }
 
-    onDateChange(date.toISOString());
+    onDateChange(date.toISOString(), false);
   };
 
   const handleHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,7 +67,7 @@ export default function DatePicker({
       const minutes_num = parseInt(minutes) || 0;
       const newDate = new Date(valueDate);
       newDate.setHours(hours_num, minutes_num, 0, 0);
-      onDateChange(newDate.toISOString());
+      onDateChange(newDate.toISOString(), true);
     }
   };
 
@@ -83,14 +89,17 @@ export default function DatePicker({
       const minutes_num = parseInt(newMinutes) || 0;
       const newDate = new Date(valueDate);
       newDate.setHours(hours_num, minutes_num, 0, 0);
-      onDateChange(newDate.toISOString());
+      onDateChange(newDate.toISOString(), true);
     }
   };
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="noShadow" className={`justify-start text-left font-base ${className}`}>
+        <Button
+          variant="noShadow"
+          className={`justify-start text-left font-base truncate ${className}`}
+        >
           <CalendarIcon className="size-4 mr-2" />
           {valueDate ? (
             format(valueDate, withTime ? 'MMM dd, yyyy HH:mm' : 'MMM dd, yyyy')
@@ -99,7 +108,12 @@ export default function DatePicker({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto border-0! p-4">
+      <PopoverContent
+        className="w-auto border-0 p-4"
+        side={side}
+        align={align}
+        sideOffset={sideOffset}
+      >
         <div className="space-y-4">
           <Calendar
             mode="single"

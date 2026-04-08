@@ -198,3 +198,27 @@ export const isToday = (dateString: string | undefined): boolean => {
     return false;
   }
 };
+
+/**
+ * Check if a date is overdue (today > due date)
+ * @param dateString - ISO string from Redux store
+ * @returns true if date is in the past (overdue), false otherwise
+ */
+export const isDateOverdue = (dateString: string | undefined): boolean => {
+  if (!dateString) return false;
+
+  try {
+    const dueDate = new Date(dateString);
+    if (Number.isNaN(dueDate.getTime())) {
+      return false;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+
+    return today > dueDate;
+  } catch {
+    return false;
+  }
+};

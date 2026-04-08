@@ -13,6 +13,7 @@ interface KanbanColumnProps {
   onDragEnd: () => void;
   onDragOver: (e: React.DragEvent<HTMLDivElement>) => void;
   onDrop: (status: TaskStatus, e: React.DragEvent<HTMLDivElement>) => void;
+  onEditTask?: (task: Task) => void;
 }
 
 export default function KanbanColumn({
@@ -27,6 +28,7 @@ export default function KanbanColumn({
   onDragEnd,
   onDragOver,
   onDrop,
+  onEditTask,
 }: KanbanColumnProps) {
   return (
     <div className="flex flex-col h-full">
@@ -62,6 +64,7 @@ export default function KanbanColumn({
               isDragging={draggedTaskId === task.id}
               onDragStart={onDragStart}
               onDragEnd={onDragEnd}
+              onEditTask={onEditTask}
             />
           ))
         )}
