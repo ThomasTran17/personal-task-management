@@ -4,5 +4,6 @@
  */
 
 export * from './store';
+export * from './authSlice';
 export * from './taskSlice';
 export * from './selectors';

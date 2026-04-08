@@ -1,9 +1,51 @@
 /**
- * Redux Selectors for Task Slice
+ * Redux Selectors for Auth & Task Slices
  * Memoized selectors for efficient component re-renders
  */
 
 import type { RootState } from './store';
+
+/**
+ * ============================================================
+ * AUTH SELECTORS
+ * ============================================================
+ */
+
+/**
+ * Select entire auth slice state
+ */
+export const selectAuthState = (state: RootState) => state.auth;
+
+/**
+ * Select current authenticated user
+ */
+export const selectCurrentUser = (state: RootState) => state.auth.user;
+
+/**
+ * Select access token
+ */
+export const selectAccessToken = (state: RootState) => state.auth.accessToken;
+
+/**
+ * Select authentication status
+ */
+export const selectIsAuthenticated = (state: RootState) => state.auth.isAuthenticated;
+
+/**
+ * Select if user is authenticated (boolean)
+ */
+export const selectIsAuth = (state: RootState) => state.auth.isAuthenticated;
+
+/**
+ * Select user ID (if authenticated)
+ */
+export const selectCurrentUserId = (state: RootState) => state.auth.user?.id ?? null;
+
+/**
+ * ============================================================
+ * TASK SELECTORS
+ * ============================================================
+ */
 
 /**
  * Select entire task slice state
