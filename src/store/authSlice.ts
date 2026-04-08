@@ -8,8 +8,9 @@
  * - Logout/RefreshFailed → matchFulfilled/matchRejected (reset state)
  */
 
-import { createSlice } from '@reduxjs/toolkit';
-import type { UserWithAttributes } from '@/api';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import type { UserWithAttributes, AuthResponse } from '@/api';
+import { tokenManager } from '@/api';
 import { authApi } from '@/api/services/authApi';
 
 export interface AuthState {
@@ -18,11 +19,20 @@ export interface AuthState {
   isAuthenticated: boolean;
 }
 
-const initialState: AuthState = {
-  user: null,
-  accessToken: null,
-  isAuthenticated: false,
+/**
+ * Initialize auth state from tokenManager (LocalStorage)
+ * Preserves user session across page reloads
+ */
+const initializeAuthState = (): AuthState => {
+  const token = tokenManager.getToken();
+  return {
+    user: null, // User will be populated by getProfile query
+    accessToken: token,
+    isAuthenticated: !!token, // Authenticated if token exists
+  };
 };
+
+const initialState: AuthState = initializeAuthState();
 
 /**
  * Auth Slice
@@ -50,40 +60,52 @@ export const authSlice = createSlice({
      * Handle login mutation fulfillment
      * Sets user, token, and authenticated flag
      */
-    builder.addMatcher(authApi.endpoints.login.matchFulfilled, (state, { payload }) => {
-      state.user = payload.user;
-      state.accessToken = payload.accessToken;
-      state.isAuthenticated = true;
-    });
+    builder.addMatcher(
+      authApi.endpoints.login.matchFulfilled,
+      (state, action: PayloadAction<AuthResponse>) => {
+        state.user = action.payload.user;
+        state.accessToken = action.payload.accessToken;
+        state.isAuthenticated = true;
+      }
+    );
 
     /**
      * Handle register mutation fulfillment
      * Sets user, token, and authenticated flag
      */
-    builder.addMatcher(authApi.endpoints.register.matchFulfilled, (state, { payload }) => {
-      state.user = payload.user;
-      state.accessToken = payload.accessToken;
-      state.isAuthenticated = true;
-    });
+    builder.addMatcher(
+      authApi.endpoints.register.matchFulfilled,
+      (state, action: PayloadAction<AuthResponse>) => {
+        state.user = action.payload.user;
+        state.accessToken = action.payload.accessToken;
+        state.isAuthenticated = true;
+      }
+    );
 
     /**
      * Handle refreshToken mutation fulfillment
      * Updates token and user on successful refresh
      */
-    builder.addMatcher(authApi.endpoints.refreshToken.matchFulfilled, (state, { payload }) => {
-      state.user = payload.user;
-      state.accessToken = payload.accessToken;
-      state.isAuthenticated = true;
-    });
+    builder.addMatcher(
+      authApi.endpoints.refreshToken.matchFulfilled,
+      (state, action: PayloadAction<AuthResponse>) => {
+        state.user = action.payload.user;
+        state.accessToken = action.payload.accessToken;
+        state.isAuthenticated = true;
+      }
+    );
 
     /**
      * Handle getProfile query fulfillment
      * Syncs user profile data (no token update)
      */
-    builder.addMatcher(authApi.endpoints.getProfile.matchFulfilled, (state, { payload }) => {
-      state.user = payload;
-      state.isAuthenticated = true;
-    });
+    builder.addMatcher(
+      authApi.endpoints.getProfile.matchFulfilled,
+      (state, action: PayloadAction<UserWithAttributes>) => {
+        state.user = action.payload;
+        state.isAuthenticated = true;
+      }
+    );
 
     /**
      * Handle logout mutation fulfillment
