@@ -32,6 +32,7 @@ import {
 } from '@/components/tasks';
 import { getStatusColor as getBorderColor } from '@/components/tasks/task-status-colors';
 import { ParticipantsDisplay } from './ParticipantsDisplay';
+import { OwnerDisplay } from './OwnerDisplay';
 import { StatusDropdown } from './StatusDropdown';
 import { PriorityDropdown } from './PriorityDropdown';
 import { DueDateDropdown } from './DueDateDropdown';
@@ -206,11 +207,12 @@ function SubtaskList({
                 aria-label="Select all subtasks"
               />
             </TableHead>
-            <TableHead className="w-[29.9%]">Title</TableHead>
-            <TableHead className="w-[20%]">Participants</TableHead>
+            <TableHead className="w-[34.9%]">Title</TableHead>
+            <TableHead className="w-[15%]">Owner</TableHead>
+            <TableHead className="w-[18%]">Participants</TableHead>
             <TableHead className="w-[12%]">Status</TableHead>
             <TableHead className="w-[15%]">Due Date</TableHead>
-            <TableHead className="w-[13%] last:rounded-tr-none">Priority</TableHead>
+            <TableHead className="w-[10%] last:rounded-tr-none">Priority</TableHead>
           </TableRow>
         </SubtaskTableHeader>
         <TableBody>
@@ -236,7 +238,7 @@ function SubtaskList({
                       onKeyDown={(e) => handleSubtaskEditKeyDown(e, subtask.id)}
                       placeholder="Enter subtask title..."
                       className={cn(
-                        'flex-1 px-2 py-1 bg-background border border-main rounded outline-none text-foreground text-sm',
+                        'flex-1 outline-none text-foreground text-sm',
                         'placeholder:text-foreground/50'
                       )}
                     />
@@ -274,6 +276,9 @@ function SubtaskList({
                     </button>
                   </div>
                 </div>
+              </TableCell>
+              <TableCell className="text-gray-600 text-sm">
+                <OwnerDisplay ownerId={subtask.ownerId} />
               </TableCell>
               <TableCell className="text-gray-600 text-sm">
                 <ParticipantsDisplay
@@ -726,11 +731,12 @@ export default function TaskList({
                           aria-label="Select all tasks"
                         />
                       </TableHead>
-                      <TableHead className="w-[35%]">Title</TableHead>
-                      <TableHead className="w-[20%]">Participants</TableHead>
+                      <TableHead className="w-[40%]">Title</TableHead>
+                      <TableHead className="w-[15%]">Owner</TableHead>
+                      <TableHead className="w-[18%]">Participants</TableHead>
                       <TableHead className="w-[12%]">Status</TableHead>
                       <TableHead className="w-[15%]">Due Date</TableHead>
-                      <TableHead className="w-[13%]">Priority</TableHead>
+                      <TableHead className="w-[10%]">Priority</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -761,6 +767,9 @@ export default function TaskList({
                             onSaveTitle={(newTitle) => handleSaveTaskTitle(task.id, newTitle)}
                             actionContent={
                               <>
+                                <TableCell className="text-gray-600 text-sm">
+                                  <OwnerDisplay ownerId={task.ownerId} />
+                                </TableCell>
                                 <TableCell className="text-gray-600 text-sm">
                                   <ParticipantsDisplay
                                     participantIds={task.participantIds}

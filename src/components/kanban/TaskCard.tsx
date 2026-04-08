@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Card, Button } from '@/components';
 import type { Task } from '@/types';
 import { Trash2, Edit2, Calendar, AlertCircle, Clock } from 'lucide-react';
+import { OwnerDisplay } from '@/components/list';
 import {
   cn,
   getDeadlineStatus,
@@ -67,6 +68,12 @@ export default function TaskCard({ task, onDelete, onEditTask }: TaskCardProps) 
         <h3 className="font-bold text-foreground mb-2 break-words text-sm leading-snug">
           {task.title}
         </h3>
+
+        {/* Owner Information */}
+        <div className="mb-3 pb-3 border-b border-gray-200">
+          <p className="text-xs text-gray-500 font-medium mb-1">Owner</p>
+          <OwnerDisplay ownerId={task.ownerId} className="text-xs" />
+        </div>
 
         {/* Due Date */}
         {task.dueDate && (

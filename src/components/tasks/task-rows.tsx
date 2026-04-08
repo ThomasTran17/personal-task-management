@@ -207,8 +207,8 @@ function ExpandableTaskRowComponent({
                 onKeyDown={handleKeyDown}
                 placeholder="Enter task title..."
                 className={cn(
-                  'flex-1 px-2 py-1 bg-background border border-main rounded outline-none text-foreground',
-                  'placeholder:text-foreground/50 w-[400px]'
+                  'flex-1 outline-none text-foreground',
+                  'placeholder:text-foreground/50 w-[400px] h-full'
                 )}
               />
             ) : (
@@ -351,7 +351,7 @@ function AddTaskRowComponent({
         />
       )}
 
-      <TableCell colSpan={6} className={cn('ps-0 pe-0 border-b-1', status && 'rounded-br-base')}>
+      <TableCell colSpan={7} className={cn('ps-0 pe-0 border-b-1', status && 'rounded-br-base')}>
         {isEditing ? (
           <input
             ref={inputRef}
