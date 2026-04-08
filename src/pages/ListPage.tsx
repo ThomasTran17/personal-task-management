@@ -41,6 +41,7 @@ export default function ListPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedTaskForEdit, setSelectedTaskForEdit] = useState<Task | null>(null);
+  const [parentTaskForEdit, setParentTaskForEdit] = useState<Task | null>(null);
   const [selectedTaskForDelete, setSelectedTaskForDelete] = useState<Task | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const queryMode = searchParams.get('mode') as ViewMode;
@@ -127,6 +128,9 @@ export default function ListPage() {
         onFilterStatusChange={handleFilterStatus}
         onEditTask={(task) => {
           setSelectedTaskForEdit(task);
+          // Find parent task if editing a subtask
+          const parentTask = filteredTasks.find((t) => t.subtasks?.some((st) => st.id === task.id));
+          setParentTaskForEdit(parentTask ?? null);
           setIsEditDialogOpen(true);
         }}
         onDeleteTask={(task) => {
@@ -143,6 +147,7 @@ export default function ListPage() {
         isOpen={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         task={selectedTaskForEdit}
+        parentTask={parentTaskForEdit}
       />
 
       {/* Delete Confirmation Dialog */}

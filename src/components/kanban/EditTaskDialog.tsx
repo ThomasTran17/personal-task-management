@@ -27,6 +27,7 @@ interface EditTaskDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   task: Task | null;
+  parentTask?: Task | null;
 }
 
 const STATUS_OPTIONS = [
@@ -68,10 +69,15 @@ const descriptionEditorConfig: EditorConfig = {
   },
 };
 
-export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskDialogProps) {
+export default function EditTaskDialog({
+  isOpen,
+  onOpenChange,
+  task,
+  parentTask: parentTaskProp,
+}: EditTaskDialogProps) {
   const [prevTaskId, setPrevTaskId] = useState<string | null>(null);
   const [currentTask, setCurrentTask] = useState<Task | null>(null);
-  const [parentTask, setParentTask] = useState<Task | null>(null);
+  const [parentTask, setParentTask] = useState<Task | null>(parentTaskProp ?? null);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -97,7 +103,8 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
   // Initialize with parent task
   if (task && task.id !== prevTaskId) {
     setCurrentTask(task);
-    setParentTask(task);
+    // Use provided parentTask or default to task itself if it's a parent task
+    setParentTask(parentTaskProp ?? task);
     setTitle(task.title);
     setDescription(task.description ?? '');
     setStatus(task.status);
@@ -108,6 +115,9 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
     setPrevTaskId(task.id);
 
     setTouched({});
+  } else if (parentTaskProp && parentTask?.id !== parentTaskProp.id) {
+    // Update parentTask if provided prop changes
+    setParentTask(parentTaskProp);
   }
 
   // Initialize form with task data
@@ -126,7 +136,7 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentTask || !parentTask) return;
+    if (!currentTask) return;
 
     const isValid = validateForm({ title, description });
     if (!isValid) return;
@@ -134,7 +144,7 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
     void (async () => {
       try {
         // If editing a subtask, update parent task with modified subtasks
-        if (currentTask.id !== parentTask.id) {
+        if (parentTask && currentTask.id !== parentTask.id) {
           const updatedSubtasks =
             parentTask.subtasks?.map((st) =>
               st.id === currentTask.id
@@ -398,7 +408,7 @@ export default function EditTaskDialog({ isOpen, onOpenChange, task }: EditTaskD
           )}
 
           {/* Back Button - Show when editing subtask */}
-          {currentTask?.parentId && parentTask && (
+          {currentTask && parentTask && currentTask.id !== parentTask.id && (
             <button
               type="button"
               onClick={handleBackToParent}
