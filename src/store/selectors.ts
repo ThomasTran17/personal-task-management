@@ -2,8 +2,10 @@
  * Redux Selectors for Auth & Task Slices
  * Memoized selectors for efficient component re-renders
  */
-
+import { createSelector } from '@reduxjs/toolkit';
+import { taskApi } from '@/api/services/taskApi';
 import type { RootState } from './store';
+import type { Task } from '@/types/task';
 
 /**
  * ============================================================
@@ -47,15 +49,15 @@ export const selectCurrentUserId = (state: RootState) => state.auth.user?.id ?? 
  * ============================================================
  */
 
-/**
- * Select entire task slice state
- */
-export const selectTaskState = (state: RootState) => state.task;
+const selectTasksResult = taskApi.endpoints.getTasks.select(undefined);
 
 /**
  * Select all tasks from state
  */
-export const selectAllTasks = (state: RootState) => state.task.items;
+export const selectAllTasks = createSelector(
+  [selectTasksResult],
+  (result) => result.data ?? ([] as readonly Task[])
+);
 
 /**
  * Select selected task ID
@@ -71,58 +73,78 @@ export const selectTaskFilters = (state: RootState) => state.task.filters;
  * Select selected task by ID
  * Returns the currently selected task object or null
  */
-export const selectSelectedTask = (state: RootState) => {
-  const selectedId = state.task.selectedId;
-  if (!selectedId) return null;
-  return state.task.items.find((task) => task.id === selectedId) ?? null;
-};
+export const selectSelectedTask = createSelector(
+  [selectAllTasks, selectSelectedTaskId],
+  (items, selectedId) => {
+    if (!selectedId) return null;
+    return items.find((task) => task.id === selectedId) ?? null;
+  }
+);
 
 /**
  * Select filtered tasks based on current filters
  * Applies status and priority filters
  */
-export const selectFilteredTasks = (state: RootState) => {
-  const { items, filters } = state.task;
-  return items.filter((task) => {
-    if (filters.status && task.status !== filters.status) return false;
-    if (filters.priority && task.priority !== filters.priority) return false;
-    return true;
-  });
-};
+export const selectFilteredTasks = createSelector(
+  [selectAllTasks, selectTaskFilters],
+  (items, filters) => {
+    const { searchQuery, status, priority } = filters;
+
+    if (!searchQuery && !status && !priority) return items;
+
+    const query = searchQuery?.toLowerCase() ?? '';
+
+    return items.filter((task) => {
+      const matchesSearch = !query || task.title.toLowerCase().includes(query);
+      const matchesStatus = !status || task.status === status;
+
+      const matchesPriority = !priority || task.priority === priority;
+
+      return matchesSearch && matchesStatus && matchesPriority;
+    });
+  }
+);
 
 /**
  * Select task by ID
  */
-export const selectTaskById = (state: RootState, taskId: string) => {
-  return state.task.items.find((task) => task.id === taskId) ?? null;
-};
+export const selectTaskById = createSelector(
+  [selectAllTasks, (_state: RootState, taskId: string) => taskId],
+  (items, taskId) => items.find((task) => task.id === taskId) ?? null
+);
 
 /**
  * Select tasks by status
  */
-export const selectTasksByStatus = (state: RootState, status: 'TODO' | 'IN_PROGRESS' | 'DONE') => {
-  return state.task.items.filter((task) => task.status === status);
-};
+export const selectTasksByStatus = createSelector(
+  [selectAllTasks, (_state: RootState, status: 'TODO' | 'IN_PROGRESS' | 'DONE') => status],
+  (items, status) => items.filter((task) => task.status === status)
+);
 
 /**
  * Select tasks by priority
  */
-export const selectTasksByPriority = (state: RootState, priority: 'LOW' | 'MEDIUM' | 'HIGH') => {
-  return state.task.items.filter((task) => task.priority === priority);
-};
+export const selectTasksByPriority = createSelector(
+  [selectAllTasks, (_state: RootState, priority: 'LOW' | 'MEDIUM' | 'HIGH') => priority],
+  (items, priority) => items.filter((task) => task.priority === priority)
+);
 
 /**
  * Select task count
  */
-export const selectTaskCount = (state: RootState) => state.task.items.length;
+export const selectTaskCount = createSelector([selectAllTasks], (items) => items.length);
 
 /**
  * Select task count by status
  */
-export const selectTaskCountByStatus = (state: RootState) => {
-  return {
-    todo: state.task.items.filter((t) => t.status === 'TODO').length,
-    inProgress: state.task.items.filter((t) => t.status === 'IN_PROGRESS').length,
-    done: state.task.items.filter((t) => t.status === 'DONE').length,
-  };
-};
+export const selectTaskCountByStatus = createSelector([selectAllTasks], (items) => {
+  return items.reduce(
+    (acc, task) => {
+      if (task.status === 'TODO') acc.todo++;
+      else if (task.status === 'IN_PROGRESS') acc.inProgress++;
+      else if (task.status === 'DONE') acc.done++;
+      return acc;
+    },
+    { todo: 0, inProgress: 0, done: 0 }
+  );
+});

@@ -62,19 +62,11 @@ export default function TaskCard({ task, onDelete, onEditTask }: TaskCardProps) 
 
   return (
     <>
-      <Card className="prose prose-sm bg-background border-2 border-border shadow-shadow hover:shadow-md transition-shadow p-4">
+      <Card className="bg-background border-2 border-border shadow-shadow hover:shadow-md transition-shadow p-4">
         {/* Task Title */}
         <h3 className="font-bold text-foreground mb-2 break-words text-sm leading-snug">
           {task.title}
         </h3>
-
-        {/* Task Description */}
-        {task.description && task.description !== '<p></p>' && (
-          <div
-            className="min-h-0 max-h-30 truncate"
-            dangerouslySetInnerHTML={{ __html: task.description }}
-          />
-        )}
 
         {/* Due Date */}
         {task.dueDate && (

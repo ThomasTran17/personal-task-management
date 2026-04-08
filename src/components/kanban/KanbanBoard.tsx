@@ -1,7 +1,7 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger, KanbanColumn } from '@/components';
 import { useDeleteTaskMutation } from '@/api';
-import type { TaskStatus, TaskPriority } from '@/types';
+import type { TaskStatus } from '@/types';
 import type { Task } from '@/types/task';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import type { SerializedError } from '@reduxjs/toolkit';
@@ -17,9 +17,7 @@ interface KanbanBoardProps {
   tasks: readonly Task[];
   _isLoading?: boolean;
   _error?: FetchBaseQueryError | SerializedError;
-  searchQuery: string;
   filterStatus: TaskStatus | 'all';
-  filterPriority: TaskPriority | 'all';
   onFilterStatusChange: (status: TaskStatus | 'all') => void;
   onEditTask?: (task: Task) => void;
   onDeleteTask?: (task: Task) => void;
@@ -35,9 +33,7 @@ export default function KanbanBoard({
   tasks,
   _isLoading = false,
   _error,
-  searchQuery,
   filterStatus,
-  filterPriority,
   onFilterStatusChange,
   onEditTask,
   onDeleteTask,
@@ -58,31 +54,16 @@ export default function KanbanBoard({
   // Setup title badge with deadline count
   useTitleBadge();
 
-  const filteredTasks = useMemo(() => {
-    return tasks.filter((task) => {
-      // Search filter by title (case-insensitive)
-      const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase());
-
-      // Status filter
-      const matchesStatus = filterStatus === 'all' || task.status === filterStatus;
-
-      // Priority filter
-      const matchesPriority = filterPriority === 'all' || task.priority === filterPriority;
-
-      return matchesSearch && matchesStatus && matchesPriority;
-    });
-  }, [tasks, searchQuery, filterStatus, filterPriority]);
-
   const getTasksByStatus = useCallback(
     (status: TaskStatus) => {
-      const tasksByStatus = filteredTasks.filter((task) => task.status === status);
-      // Sort by deadline for todo and in-progress, keep as-is for done
+      const tasksByStatus = tasks.filter((task) => task.status === status);
+
       if (status === 'TODO' || status === 'IN_PROGRESS') {
         return sortTasksByDeadline(tasksByStatus);
       }
       return tasksByStatus;
     },
-    [filteredTasks]
+    [tasks]
   );
 
   return (

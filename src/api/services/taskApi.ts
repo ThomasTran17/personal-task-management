@@ -172,6 +172,7 @@ export const taskApi = baseApi.injectEndpoints({
         // Get current tasks from cache
         const patchResult = dispatch(
           taskApi.util.updateQueryData('getTasks', undefined, (draft) => {
+            const tasksDraft = draft as Task[];
             const now = new Date().toISOString();
             const newTask: Task = {
               id: `temp-${Date.now()}`,
@@ -190,9 +191,7 @@ export const taskApi = baseApi.injectEndpoints({
               newTask.dueDate = arg.dueDate;
             }
 
-            // @ts-expect-error - draft is mutable in RTK Query
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-            draft.push(newTask);
+            tasksDraft.push(newTask);
           })
         );
 
@@ -291,62 +290,20 @@ export const taskApi = baseApi.injectEndpoints({
     }),
 
     /**
-     * Update subtask for a parent task
-     * Updates subtask in parent task's subtasks array in getTasks cache
-     *
-     * NO invalidatesTags: Manual cache sync via taskSlice extraReducers
-     * This prevents redundant GET /tasks/all after update
-     */
-    updateSubtask: builder.mutation<
-      Task,
-      { parentId: string; subtaskId: string; updates: UpdateTaskPayload }
-    >({
-      query: ({ parentId, subtaskId, updates }) => ({
-        url: `/tasks/${parentId}/subtasks/${subtaskId}`,
-        method: 'PUT',
-        body: updates,
-      }),
-      transformResponse: (response: JsonApiResponse<TaskAttributes>): Task => {
-        // Handle single resource
-        if (Array.isArray(response.data)) {
-          throw new Error('updateSubtask response should contain single task resource');
-        }
-
-        const resource = response.data as JsonApiResource<TaskAttributes>;
-        return mapTaskAttributes(resource.attributes, resource.id);
-      },
-      // Optimistic update: modify subtask in cache before server response
-      async onQueryStarted({ parentId, subtaskId, updates }, { dispatch, queryFulfilled }) {
-        const patchResult = dispatch(
-          taskApi.util.updateQueryData('getTasks', undefined, (draft) => {
-            const parentTask = draft.find((t) => t.id === parentId);
-            if (parentTask?.subtasks) {
-              const subtask = parentTask.subtasks.find((t) => t.id === subtaskId);
-              if (subtask) {
-                Object.assign(subtask, updates, { updatedAt: new Date().toISOString() });
-              }
-            }
-          })
-        );
-
-        try {
-          await queryFulfilled;
-        } catch {
-          // Revert on error
-          patchResult.undo();
-        }
-      },
-    }),
-
-    /**
-     * Update task
+     * Update task or subtask (unified mutation)
      * Only owner and participants can update the task
      * Backend validates permission and returns 403 if denied
      *
+     * For parent tasks: { id: taskId, updates: UpdateTaskPayload }
+     * For subtasks: { id: subtaskId, parentId: parentTaskId, updates: UpdateTaskPayload }
+     *
      * NO invalidatesTags: Manual cache sync via taskSlice extraReducers
      * This prevents redundant GET /tasks/all after update
      */
-    updateTask: builder.mutation<Task, { id: string; updates: UpdateTaskPayload }>({
+    updateTask: builder.mutation<
+      Task,
+      { id: string; updates: UpdateTaskPayload; parentId?: string }
+    >({
       query: ({ id, updates }) => ({
         url: `/tasks/${id}`,
         method: 'PUT',
@@ -361,13 +318,25 @@ export const taskApi = baseApi.injectEndpoints({
         const resource = response.data as JsonApiResource<TaskAttributes>;
         return mapTaskAttributes(resource.attributes, resource.id);
       },
-      // Optimistic update: modify task in cache before server response
-      async onQueryStarted({ id, updates }, { dispatch, queryFulfilled }) {
+      // Optimistic update: modify task or subtask in cache before server response
+      async onQueryStarted({ id, updates, parentId }, { dispatch, queryFulfilled }) {
         const patchResult = dispatch(
           taskApi.util.updateQueryData('getTasks', undefined, (draft) => {
-            const task = draft.find((t) => t.id === id);
-            if (task) {
-              Object.assign(task, updates, { updatedAt: new Date().toISOString() });
+            if (parentId) {
+              // Update subtask in parent's subtasks array
+              const parentTask = draft.find((t) => t.id === parentId);
+              if (parentTask?.subtasks) {
+                const subtask = parentTask.subtasks.find((t) => t.id === id);
+                if (subtask) {
+                  Object.assign(subtask, updates, { updatedAt: new Date().toISOString() });
+                }
+              }
+            } else {
+              // Update task in root tasks array
+              const task = draft.find((t) => t.id === id);
+              if (task) {
+                Object.assign(task, updates, { updatedAt: new Date().toISOString() });
+              }
             }
           })
         );
@@ -475,7 +444,6 @@ export const {
   useGetTaskByIdQuery,
   useAddTaskMutation,
   useAddSubtaskMutation,
-  useUpdateSubtaskMutation,
   useDeleteSubtaskMutation,
   useUpdateTaskMutation,
   useDeleteTaskMutation,

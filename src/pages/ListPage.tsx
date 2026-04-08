@@ -1,3 +1,4 @@
+import { useSelector, useDispatch } from 'react-redux';
 import { useEffect, useState } from 'react';
 import {
   KanbanBoard,
@@ -21,6 +22,7 @@ import {
 import { useGetTasksQuery, useDeleteTaskMutation } from '@/api';
 import { Grid3x3, List } from 'lucide-react';
 import type { TaskStatus, TaskPriority, Task } from '@/types';
+import { setSearchQuery, updateFilters, selectTaskFilters, selectFilteredTasks } from '@/store';
 import { useSearchParams } from 'react-router-dom';
 
 type ViewMode = 'kanban' | 'list';
@@ -34,22 +36,33 @@ const VALID_MODES: ViewMode[] = ['kanban', 'list'];
 const DEFAULT_MODE: ViewMode = 'kanban';
 
 export default function ListPage() {
+  const dispatch = useDispatch();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedTaskForEdit, setSelectedTaskForEdit] = useState<Task | null>(null);
   const [selectedTaskForDelete, setSelectedTaskForDelete] = useState<Task | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<TaskStatus | 'all'>('all');
-  const [filterPriority, setFilterPriority] = useState<TaskPriority | 'all'>('all');
   const [searchParams, setSearchParams] = useSearchParams();
   const queryMode = searchParams.get('mode') as ViewMode;
   const viewMode: ViewMode = VALID_MODES.includes(queryMode) ? queryMode : DEFAULT_MODE;
 
+  const { isLoading, error } = useGetTasksQuery();
+  const filteredTasks = useSelector(selectFilteredTasks);
+  const { searchQuery, status, priority } = useSelector(selectTaskFilters);
+
   const [deleteTask] = useDeleteTaskMutation();
 
+  const handleSearch = (val: string) => dispatch(setSearchQuery(val));
+
+  const handleFilterStatus = (val: TaskStatus | 'all') => {
+    dispatch(updateFilters({ status: val === 'all' ? null : val }));
+  };
+
+  const handleFilterPriority = (val: TaskPriority | 'all') => {
+    dispatch(updateFilters({ priority: val === 'all' ? null : val }));
+  };
+
   // Fetch tasks at parent level (Lift State Up)
-  const { data: tasks = [], isLoading, error } = useGetTasksQuery();
 
   const ActiveView = VIEW_COMPONENTS[viewMode];
 
@@ -94,12 +107,12 @@ export default function ListPage() {
 
       <div className="w-full flex items-center justify-between">
         <SearchAndFilter
-          onSearch={setSearchQuery}
-          onFilterStatus={setFilterStatus}
-          onFilterPriority={setFilterPriority}
-          searchValue={searchQuery}
-          filterStatus={filterStatus}
-          filterPriority={filterPriority}
+          onSearch={handleSearch}
+          onFilterStatus={handleFilterStatus}
+          onFilterPriority={handleFilterPriority}
+          searchValue={searchQuery ?? ''}
+          filterStatus={status ?? 'all'}
+          filterPriority={priority ?? 'all'}
           onAddTask={() => setIsAddDialogOpen(true)}
           viewMode={viewMode}
         />
@@ -107,13 +120,11 @@ export default function ListPage() {
 
       {/* Conditional Rendering based on viewMode */}
       <ActiveView
-        tasks={tasks}
+        tasks={filteredTasks}
         _isLoading={isLoading}
         _error={error}
-        searchQuery={searchQuery}
-        filterStatus={filterStatus}
-        filterPriority={filterPriority}
-        onFilterStatusChange={setFilterStatus}
+        filterStatus={status ?? 'all'}
+        onFilterStatusChange={handleFilterStatus}
         onEditTask={(task) => {
           setSelectedTaskForEdit(task);
           setIsEditDialogOpen(true);

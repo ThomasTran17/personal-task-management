@@ -40,10 +40,6 @@ interface TaskListProps {
   tasks: readonly Task[];
   isLoading?: boolean;
   error?: FetchBaseQueryError | SerializedError;
-  searchQuery: string;
-  filterStatus: TaskStatus | 'all';
-  filterPriority: TaskPriority | 'all';
-  onFilterStatusChange?: (status: TaskStatus | 'all') => void;
   onEditTask?: (task: Task) => void;
   onDeleteTask?: (task: Task) => void;
 }
@@ -117,10 +113,10 @@ interface SubtaskListProps {
   onUpdateParticipants?: (taskId: string, participantIds: string[]) => void;
   onEditSubtask?: (subtask: Task) => void;
   onDeleteSubtask?: (subtask: Task) => void;
-  onQuickStatusChange?: (taskId: string, status: TaskStatus) => void;
-  onQuickPriorityChange?: (taskId: string, priority: TaskPriority) => void;
-  onQuickDueDateChange?: (taskId: string, dueDate: string | null) => void;
-  onSaveSubtaskTitle?: (subtaskId: string, newTitle: string) => void;
+  onQuickStatusChange?: (taskId: string, status: TaskStatus, parentId?: string) => void;
+  onQuickPriorityChange?: (taskId: string, priority: TaskPriority, parentId?: string) => void;
+  onQuickDueDateChange?: (taskId: string, dueDate: string | null, parentId?: string) => void;
+  onSaveSubtaskTitle?: (subtaskId: string, newTitle: string, parentId: string) => void;
   disabledTaskIds?: Set<string>;
 }
 
@@ -162,12 +158,12 @@ function SubtaskList({
         editingSubtaskValue.trim() &&
         editingSubtaskValue.trim() !== subtasks.find((s) => s.id === subtaskId)?.title
       ) {
-        onSaveSubtaskTitle?.(subtaskId, editingSubtaskValue.trim());
+        onSaveSubtaskTitle?.(subtaskId, editingSubtaskValue.trim(), _parentTaskId);
       }
       setEditingSubtaskId(null);
       setEditingSubtaskValue('');
     },
-    [editingSubtaskValue, subtasks, onSaveSubtaskTitle]
+    [editingSubtaskValue, subtasks, onSaveSubtaskTitle, _parentTaskId]
   );
 
   const handleCancelSubtaskEdit = React.useCallback(() => {
@@ -293,14 +289,18 @@ function SubtaskList({
                   status={subtask.status as TaskStatus}
                   getStatusColor={getStatusColor}
                   getStatusLabel={getStatusLabel}
-                  onStatusChange={(newStatus) => onQuickStatusChange?.(subtask.id, newStatus)}
+                  onStatusChange={(newStatus) =>
+                    onQuickStatusChange?.(subtask.id, newStatus, _parentTaskId)
+                  }
                   disabled={disabledTaskIds.has(subtask.id)}
                 />
               </TableCell>
               <TableCell>
                 <DueDateDropdown
                   dueDate={subtask.dueDate ?? null}
-                  onDueDateChange={(newDueDate) => onQuickDueDateChange?.(subtask.id, newDueDate)}
+                  onDueDateChange={(newDueDate) =>
+                    onQuickDueDateChange?.(subtask.id, newDueDate, _parentTaskId)
+                  }
                   disabled={disabledTaskIds.has(subtask.id)}
                 />
               </TableCell>
@@ -310,7 +310,7 @@ function SubtaskList({
                   getPriorityColor={getPriorityColor}
                   getPriorityLabel={getPriorityLabel}
                   onPriorityChange={(newPriority) =>
-                    onQuickPriorityChange?.(subtask.id, newPriority)
+                    onQuickPriorityChange?.(subtask.id, newPriority, _parentTaskId)
                   }
                   disabled={disabledTaskIds.has(subtask.id)}
                 />
@@ -330,9 +330,6 @@ export default function TaskList({
   tasks,
   isLoading = false,
   error,
-  searchQuery,
-  filterStatus,
-  filterPriority,
   onEditTask,
   onDeleteTask,
 }: TaskListProps) {
@@ -347,39 +344,29 @@ export default function TaskList({
   const { data: currentUser, isLoading: isLoadingProfile } = useGetProfileQuery();
   const currentUserId = currentUser?.id ?? '';
 
-  // Filter tasks based on search query, status, and priority
-  const filteredTasks = useMemo(() => {
-    return tasks.filter((task) => {
-      const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = filterStatus === 'all' || task.status === filterStatus;
-      const matchesPriority = filterPriority === 'all' || task.priority === filterPriority;
-      return matchesSearch && matchesStatus && matchesPriority;
-    });
-  }, [tasks, searchQuery, filterStatus, filterPriority]);
-
   // Sort tasks by deadline - MUST be memoized to prevent ref cleanup loops
-  const filteredAndSortedTasks = useMemo(() => {
-    return sortTasksByDeadline([...filteredTasks]);
-  }, [filteredTasks]);
+  const sortedTasks = useMemo(() => {
+    return sortTasksByDeadline([...tasks]);
+  }, [tasks]);
 
   // Build parentToChildren mapping from nested subtasks
   const parentToChildrenMap = useMemo(() => {
     const mapping: Record<string, string[]> = {};
-    filteredAndSortedTasks.forEach((task) => {
+    sortedTasks.forEach((task) => {
       mapping[task.id] = task.subtasks?.map((st: Task) => st.id) ?? [];
     });
     return mapping;
-  }, [filteredAndSortedTasks]);
+  }, [sortedTasks]);
 
   // Calculate total visible count: parents + all visible children
   const totalVisibleCount = useMemo(() => {
-    const parentCount = filteredAndSortedTasks.length;
+    const parentCount = sortedTasks.length;
     const childrenCount = Object.values(parentToChildrenMap).reduce(
       (sum, children) => sum + children.length,
       0
     );
     return parentCount + childrenCount;
-  }, [filteredAndSortedTasks, parentToChildrenMap]);
+  }, [sortedTasks, parentToChildrenMap]);
 
   // Derived state: isAllSelected compares total visible count with selected count (Full-Tree)
   // Using selectedIds.size for comparison to avoid stale closure in callbacks
@@ -388,16 +375,11 @@ export default function TaskList({
   // Full-Tree Select All: Toggle ALL visible rows (Parents + Subtasks)
   const handleSelectAll = useCallback(() => {
     setSelectedIds((prev) => {
-      // Calculate whether all are selected based on current state
       const allSelected = prev.size > 0 && prev.size === totalVisibleCount;
+      if (allSelected) return new Set();
 
-      if (allSelected) {
-        return new Set();
-      }
-
-      // Build set of all visible IDs: parents + all children
       const next = new Set<string>();
-      filteredAndSortedTasks.forEach((task) => {
+      sortedTasks.forEach((task) => {
         next.add(task.id);
         const children = parentToChildrenMap[task.id];
         if (children) {
@@ -406,7 +388,7 @@ export default function TaskList({
       });
       return next;
     });
-  }, [totalVisibleCount, filteredAndSortedTasks, parentToChildrenMap]);
+  }, [totalVisibleCount, sortedTasks, parentToChildrenMap]);
 
   // Clear selection
   const handleClearSelection = useCallback(() => {
@@ -458,7 +440,7 @@ export default function TaskList({
 
   // Handle quick status change for task or subtask
   const handleQuickStatusChange = useCallback(
-    (taskId: string, newStatus: TaskStatus) => {
+    (taskId: string, newStatus: TaskStatus, parentId?: string) => {
       void (async () => {
         try {
           await updateTask({
@@ -466,6 +448,7 @@ export default function TaskList({
             updates: {
               status: newStatus,
             },
+            parentId,
           }).unwrap();
         } catch (error) {
           console.error('Failed to update task status:', error);
@@ -477,7 +460,7 @@ export default function TaskList({
 
   // Handle quick priority change for task or subtask
   const handleQuickPriorityChange = useCallback(
-    (taskId: string, newPriority: TaskPriority) => {
+    (taskId: string, newPriority: TaskPriority, parentId?: string) => {
       void (async () => {
         try {
           await updateTask({
@@ -485,6 +468,7 @@ export default function TaskList({
             updates: {
               priority: newPriority,
             },
+            parentId,
           }).unwrap();
         } catch (error) {
           console.error('Failed to update task priority:', error);
@@ -496,7 +480,7 @@ export default function TaskList({
 
   // Handle quick due date change for task or subtask
   const handleQuickDueDateChange = useCallback(
-    (taskId: string, newDueDate: string | null) => {
+    (taskId: string, newDueDate: string | null, parentId?: string) => {
       void (async () => {
         try {
           await updateTask({
@@ -504,6 +488,7 @@ export default function TaskList({
             updates: {
               dueDate: newDueDate ?? null,
             },
+            parentId,
           }).unwrap();
         } catch (error) {
           console.error('Failed to update task due date:', error);
@@ -534,7 +519,7 @@ export default function TaskList({
 
   // Handle saving subtask title (inline edit)
   const handleSaveSubtaskTitle = useCallback(
-    (subtaskId: string, newTitle: string) => {
+    (subtaskId: string, newTitle: string, parentId: string) => {
       void (async () => {
         try {
           await updateTask({
@@ -542,6 +527,7 @@ export default function TaskList({
             updates: {
               title: newTitle,
             },
+            parentId,
           }).unwrap();
         } catch (error) {
           console.error('Failed to update subtask title:', error);
@@ -718,7 +704,7 @@ export default function TaskList({
             )}
 
             {/* Task Table */}
-            {!isLoading && !error && filteredAndSortedTasks.length === 0 ? (
+            {!isLoading && !error && sortedTasks.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
                 <p className="text-gray-500 text-lg">No tasks available</p>
               </div>
@@ -748,7 +734,7 @@ export default function TaskList({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredAndSortedTasks.map((task: Task) => {
+                    {sortedTasks.map((task: Task) => {
                       const subtasksData = task.subtasks ?? [];
                       const isExpanded = expandedTasks.has(task.id);
                       const hasSubtasks = subtasksData.length > 0;
